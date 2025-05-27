@@ -2,7 +2,7 @@ import json
 import os
 import tempfile
 
-from src.generate.figured_bass import create_figured_bass_realization
+from src.generate.partimento import create_figured_bass_realization
 
 
 def test_create_figured_bass_realization_creates_musicxml():

@@ -15,7 +15,7 @@
 - [x] CI/CD with linting and formatting
 - [x] Pre-commit hooks for code hygiene
 - [ ] MusicXML inspection and summarization via CLI
-- [ ] CLI command for chaining prompt → JSON → MusicXML in one go
+- [x] CLI command for chaining prompt → JSON → MusicXML in one go
 - [ ] Export to PDF and MIDI via backend tools (MuseScore, music21)
 
 ---
@@ -31,7 +31,8 @@
 
 ### Baroque / Classical
 - [x] Figured bass realization (Claudio Furno)
-- [ ] First species counterpoint (SATB)
+- [x] Partimento generator
+- [x] First species counterpoint (SATB)
 - [ ] Chorale-style four-part harmonization
 - [ ] Reharmonization via LLM review
 

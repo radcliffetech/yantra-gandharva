@@ -17,7 +17,7 @@ from ..prompts.figured_bass import (
 )
 
 
-def generate_figured_bass_realization(prompt: str, call_llm) -> dict:
+def realize_satb(prompt: str, call_llm) -> dict:
     """
     Given a natural language prompt describing a figured bass progression,
     use the provided LLM call function to generate a realized four-part texture in JSON format.

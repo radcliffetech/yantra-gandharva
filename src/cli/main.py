@@ -9,8 +9,8 @@ import argparse
 
 from colorama import Fore, Style, init
 
-from . import handlers
 from .commands import register_commands
+from .handlers import handler_map
 
 # For realize-figured-bass, import call_llm and realize_figured_bass_from_prompt directly
 
@@ -23,14 +23,6 @@ def main():
     register_commands(subparsers)
 
     args = parser.parse_args()
-
-    handler_map = {
-        "llm-generate": handlers.handle_llm_generate,
-        "lead-sheet": handlers.handle_generate_lead_sheet,
-        "figured-bass": handlers.handle_generate_figured_bass,
-        "realize-figured-bass": handlers.handle_realize_figured_bass,
-        "chain-figured-bass": handlers.handle_chain_figured_bass,
-    }
 
     if args.command in handler_map:
         handler_map[args.command](args)
