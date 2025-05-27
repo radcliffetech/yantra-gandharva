@@ -1,6 +1,6 @@
 import json
 
-from music21 import key, metadata, meter, note, stream
+from music21 import clef, key, metadata, meter, note, stream
 
 
 def export_partimento_to_musicxml(json_path: str, output_path: str):
@@ -12,6 +12,7 @@ def export_partimento_to_musicxml(json_path: str, output_path: str):
     score.metadata.title = data.get("title", "Partimento")
 
     part = stream.Part()
+    part.insert(0, clef.BassClef())
     tonic, mode = data["key"].split()
     part.append(key.Key(tonic, mode))
     part.append(meter.TimeSignature("4/4"))

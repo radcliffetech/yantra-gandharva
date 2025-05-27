@@ -1,3 +1,16 @@
+def register_generate_and_review_partimento(subparsers):
+    parser = subparsers.add_parser(
+        "generate-and-review-partimento",
+        help="Generate a partimento, review it, and export to MusicXML (no realization)",
+    )
+    parser.add_argument(
+        "prompt", help="Natural language prompt describing the partimento to generate"
+    )
+    parser.add_argument(
+        "--output", "-o", help="Path to save the generated JSON (optional)"
+    )
+
+
 def register_review_score(subparsers):
     parser = subparsers.add_parser(
         "review-score", help="Use LLM to review a realized SATB partimento"
@@ -106,3 +119,4 @@ def register_commands(subparsers):
     register_review_score(subparsers)
     register_revise_score(subparsers)
     register_review_partimento(subparsers)
+    register_generate_and_review_partimento(subparsers)

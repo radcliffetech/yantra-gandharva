@@ -1,6 +1,8 @@
 import os
 import sys
 
+import argcomplete
+
 # Ensure src/ is in sys.path for imports
 sys.path.insert(
     0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "src"))
@@ -22,6 +24,7 @@ def main():
     subparsers = parser.add_subparsers(dest="command")
     register_commands(subparsers)
 
+    argcomplete.autocomplete(parser)
     args = parser.parse_args()
 
     if args.command in handler_map:
