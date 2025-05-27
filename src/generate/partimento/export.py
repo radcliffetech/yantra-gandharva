@@ -26,7 +26,7 @@ def export_partimento_to_musicxml(json_path: str, output_path: str):
         ql = 4.0 / note_count if note_count > 0 else 4.0
 
         for j, bass_note_str in enumerate(measure_notes):
-            bass = note.Note(bass_note_str)
+            bass = note.Note(normalize_note_string(bass_note_str))
             bass.quarterLength = ql
 
             fig = figures[i][j] if i < len(figures) and j < len(figures[i]) else []
@@ -110,4 +110,55 @@ def export_realized_partimento_to_midi(realized_json_path: str, output_path: str
 
         score.append(part)
 
+    score.write("midi", fp=output_path)
+
+
+def normalize_note_string(note_str: str) -> str:
+    return (
+        note_str.replace("♭", "b")
+        .replace("♯", "#")
+        .replace("𝄪", "##")
+        .replace("𝄫", "bb")
+    )
+
+
+def export_partimento_to_midi(json_path: str, output_path: str):
+    """
+    Export a partimento JSON file to a MIDI file.
+    """
+    with open(json_path, "r") as f:
+        data = json.load(f)["data"]
+
+    score = stream.Score()
+    score.metadata = metadata.Metadata()
+    score.metadata.title = data.get("title", "Partimento")
+
+    part = stream.Part()
+    part.insert(0, clef.BassClef())
+    tonic, mode = data["key"].split()
+    part.append(key.Key(tonic, mode))
+    part.append(meter.TimeSignature("4/4"))
+
+    bassline = data["bassline"]
+    figures = data["figures"]
+
+    for i, measure_notes in enumerate(bassline):
+        m = stream.Measure(number=i + 1)
+        note_count = len(measure_notes)
+        ql = 4.0 / note_count if note_count > 0 else 4.0
+
+        for j, bass_note_str in enumerate(measure_notes):
+            bass = note.Note(normalize_note_string(bass_note_str))
+            bass.quarterLength = ql
+
+            fig = figures[i][j] if i < len(figures) and j < len(figures[i]) else []
+            if fig:
+                txt = " ".join(fig)
+                bass.addLyric(txt)
+
+            m.append(bass)
+
+        part.append(m)
+
+    score.append(part)
     score.write("midi", fp=output_path)

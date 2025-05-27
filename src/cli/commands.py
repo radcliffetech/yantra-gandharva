@@ -1,6 +1,13 @@
-def register_generate_and_review_partimento(subparsers):
+def register_write_audio(subparsers):
     parser = subparsers.add_parser(
-        "generate-and-review-partimento",
+        "export-audio", help="Conver MIDI file to ogg using timidity"
+    )
+    parser.add_argument("input", help="Path to the .mid file")
+
+
+def register_chain_parimento_only(subparsers):
+    parser = subparsers.add_parser(
+        "chain-partimento-only",
         help="Generate a partimento, review it, and export to MusicXML (no realization)",
     )
     parser.add_argument(
@@ -8,6 +15,9 @@ def register_generate_and_review_partimento(subparsers):
     )
     parser.add_argument(
         "--output", "-o", help="Path to save the generated JSON (optional)"
+    )
+    parser.add_argument(
+        "--iterations", type=int, default=1, help="Number of realization review loops"
     )
 
 
@@ -61,6 +71,9 @@ def register_chain_partimento(subparsers):
     parser.add_argument(
         "--output", "-o", help="Optional output base filename (no extension)"
     )
+    parser.add_argument(
+        "--iterations", type=int, default=1, help="Number of realization review loops"
+    )
 
 
 def register_export_partimento_to_musicxml(subparsers):
@@ -108,10 +121,21 @@ def register_review_partimento(subparsers):
     parser.add_argument("input", help="Path to the partimento JSON file")
 
 
+def register_describe_chain(subparsers):
+    parser = subparsers.add_parser(
+        "describe-chain", help="Describe the chain of operations for a partimento"
+    )
+    parser.add_argument("input", help="Path to the partimento JSON file")
+    parser.add_argument(
+        "--output", "-o", help="Path to save the description (optional)"
+    )
+
+
 def register_commands(subparsers):
-    register_lead_sheet(subparsers)
-    register_generate_partimento(subparsers)
     register_chain_partimento(subparsers)
+    register_describe_chain(subparsers)
+    register_chain_parimento_only(subparsers)
+    register_generate_partimento(subparsers)
     register_export_partimento_to_musicxml(subparsers)
     register_realize_partimento(subparsers)
     register_export_realized_partimento_to_musicxml(subparsers)
@@ -119,4 +143,5 @@ def register_commands(subparsers):
     register_review_score(subparsers)
     register_revise_score(subparsers)
     register_review_partimento(subparsers)
-    register_generate_and_review_partimento(subparsers)
+    register_write_audio(subparsers)
+    register_lead_sheet(subparsers)
