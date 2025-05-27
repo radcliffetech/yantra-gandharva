@@ -10,6 +10,8 @@ from generate.partimento import (
 )
 from llm.client import call_llm
 from llm.tasks import generate_jazz, generate_partimento
+from llm.tasks.generate_partimento import realize_partimento_satb
+from utils.metadata_utils import generate_metadata
 
 
 def handle_lead_sheet(args):
@@ -24,8 +26,12 @@ def handle_lead_sheet(args):
 
 def handle_partimento(args):
     print(Fore.CYAN + f"\n🎼 Generating partimento bass line from prompt...")
-    result = generate_partimento.generate_partimento(args.prompt, call_llm)
-    output_json = json.dumps(result, indent=2)
+    partimento_data = generate_partimento.generate_partimento(args.prompt, call_llm)
+    output = {
+        **generate_metadata(args.prompt, "generate-partimento"),
+        "data": partimento_data,
+    }
+    output_json = json.dumps(output, indent=2)
     print(Fore.GREEN + "\n✅ Generated partimento:\n" + Style.RESET_ALL + output_json)
 
     # Determine output path
@@ -52,7 +58,10 @@ def handle_chain_partimento(args):
 
     # Generate partimento
     partimento_data = generate_partimento.generate_partimento(args.prompt, call_llm)
-    json_string = json.dumps(partimento_data, indent=2)
+    partimento_output = {
+        **generate_metadata(args.prompt, "generate-partimento"),
+        "data": partimento_data,
+    }
 
     # Determine base name
     if args.output:
@@ -63,16 +72,26 @@ def handle_chain_partimento(args):
         base = f"generated/json/partimento_{timestamp}"
 
     json_path = f"{base}.json"
-    xml_path = f"{base}.musicxml"
+    realized_path = f"{base}_realized.json"
+    xml_path = f"generated/musicxml/{os.path.basename(base)}_realized.musicxml"
 
-    # Write JSON
+    # Write partimento JSON
     with open(json_path, "w") as f:
-        f.write(json_string)
+        f.write(json.dumps(partimento_output, indent=2))
     print(Fore.YELLOW + f"\n💾 JSON saved to {json_path}")
 
-    # Generate MusicXML
-    os.makedirs("generated/musicxml", exist_ok=True)
-    export_partimento_to_musicxml(json_path, xml_path)
+    # Realize partimento
+    realization = realize_partimento_satb(partimento_output, call_llm)
+    realization_output = {
+        **generate_metadata(args.prompt, "realize-partimento"),
+        "data": realization,
+    }
+    with open(realized_path, "w") as f:
+        f.write(json.dumps(realization_output, indent=2))
+    print(Fore.YELLOW + f"🎶 Realization saved to {realized_path}")
+
+    # Export to MusicXML
+    export_realized_partimento_to_musicxml(realized_path, xml_path)
     print(Fore.YELLOW + f"🎼 MusicXML saved to {xml_path}")
 
 
@@ -105,11 +124,6 @@ def handle_realize_partimento(args):
     with open(output_path, "w") as f:
         f.write(output_json)
     print(Fore.YELLOW + f"\n💾 Saved to {output_path}")
-
-    # # Export to MusicXML
-    # xml_path = output_path.replace(".json", ".musicxml")
-    # os.makedirs("generated/musicxml", exist_ok=True)
-    # export_partimento_to_musicxml(output_path, xml_path)
 
 
 def handle_export_realized_partimento_to_musicxml(args):

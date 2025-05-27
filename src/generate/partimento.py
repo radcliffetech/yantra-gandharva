@@ -5,7 +5,7 @@ from music21 import key, metadata, meter, note, stream
 
 def export_partimento_to_musicxml(json_path: str, output_path: str):
     with open(json_path, "r") as f:
-        data = json.load(f)
+        data = json.load(f)["data"]
 
     score = stream.Score()
     score.metadata = metadata.Metadata()
@@ -43,7 +43,7 @@ def export_partimento_to_musicxml(json_path: str, output_path: str):
 
 def export_realized_partimento_to_musicxml(realized_json_path: str, output_path: str):
     with open(realized_json_path, "r") as f:
-        data = json.load(f)
+        data = json.load(f)["data"]
 
     score = stream.Score()
     score.metadata = metadata.Metadata()
