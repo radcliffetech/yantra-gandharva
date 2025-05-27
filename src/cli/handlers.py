@@ -57,6 +57,8 @@ def handle_chain_partimento(args):
         + f"\n🔗 Generating → Reviewing → Realizing → Reviewing → Exporting partimento..."
     )
 
+    print(Fore.CYAN + f"\n🔗 1. Generating Partimento...")
+
     # Generate partimento
     partimento_data = generate.generate_partimento(args.prompt, call_llm)
     partimento_output = {
@@ -78,6 +80,7 @@ def handle_chain_partimento(args):
     print(Fore.YELLOW + f"\n💾 Partimento saved to {json_path}")
 
     # Review partimento
+    print(Fore.CYAN + f"\n🔗 2. Reviewing partimento...")
     review_json = review_partimento(json_path, call_llm)
     review_data = json.loads(review_json)
     review_dir = "generated/review"
@@ -107,6 +110,7 @@ def handle_chain_partimento(args):
         )
 
     # Realize partimento
+    print(Fore.CYAN + f"\n🔗 3.Realizing partimento...")
     realization = realize_partimento_satb(partimento_data, call_llm)
     realization_output = {
         **generate_metadata(args.prompt, "realize-partimento"),
@@ -118,6 +122,7 @@ def handle_chain_partimento(args):
     print(Fore.YELLOW + f"\n🎶 Realization saved to {realized_path}")
 
     # Review realization
+    print(Fore.CYAN + f"\n🔗 4.Reviewing realization...")
     review_json = review_realized_score(realized_path, call_llm)
     review_data = json.loads(review_json)
     review_realization_path = f"{review_dir}/review_realization_{timestamp}.json"
@@ -144,17 +149,22 @@ def handle_chain_partimento(args):
             + f"\n✅ Patch applied. Updated realization saved to {realized_path}"
         )
 
+    print(Fore.CYAN + f"\n🔗 5.Exporting realization...")
     # Export to MusicXML
     os.makedirs("generated/musicxml", exist_ok=True)
     xml_path = f"generated/musicxml/{os.path.basename(base)}_realized.musicxml"
     export_realized_partimento_to_musicxml(realized_path, xml_path)
     print(Fore.YELLOW + f"🎼 MusicXML saved to {xml_path}")
-
     # Export to MIDI
     os.makedirs("generated/midi", exist_ok=True)
     midi_path = f"generated/midi/{os.path.basename(base)}_realized.mid"
     export_realized_partimento_to_midi(realized_path, midi_path)
     print(Fore.YELLOW + f"🎧 MIDI saved to {midi_path}")
+
+    print(
+        Fore.GREEN
+        + "\n✅ Partimento generation, realization, review, and export completed successfully!"
+    )
 
 
 def handle_realize_partimento(args):
