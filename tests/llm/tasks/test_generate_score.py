@@ -1,6 +1,6 @@
 import json
 
-from src.llm import generate_score
+from src.llm.tasks import generate_score
 
 
 def test_prompt_to_json_jazz(monkeypatch):
@@ -19,10 +19,8 @@ def test_prompt_to_json_jazz(monkeypatch):
     def mock_call_llm(system_prompt, user_prompt):
         return fake_response
 
-    monkeypatch.setattr(generate_score, "call_llm", mock_call_llm)
-
     result = generate_score.prompt_to_json(
-        "Create a simple jazz lead sheet in C major", "jazz"
+        "Create a simple jazz lead sheet in C major", "jazz", mock_call_llm
     )
     assert result["title"] == "Test Tune"
     assert result["key"] == "C"
@@ -46,9 +44,8 @@ def test_realize_figured_bass_from_prompt(monkeypatch):
     def mock_call_llm(system_prompt, user_prompt):
         return fake_response
 
-    monkeypatch.setattr(generate_score, "call_llm", mock_call_llm)
     result = generate_score.prompt_to_json(
-        "Create a simple jazz lead sheet in C major", "figured"
+        "Create a simple jazz lead sheet in C major", "figured", mock_call_llm
     )
     assert result["key"] == "C"
     assert result["bassline"] == ["C2", "D2", "G2", "C2"]

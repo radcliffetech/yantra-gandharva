@@ -1,6 +1,6 @@
 import json
 
-from music21 import chord, key, metadata, meter, note, stream
+from music21 import key, metadata, meter, note, stream
 
 
 def create_figured_bass_realization(json_path: str, output_path: str):

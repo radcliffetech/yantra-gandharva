@@ -1,0 +1,2 @@
+[console_scripts]
+yantra = cli.main:main
