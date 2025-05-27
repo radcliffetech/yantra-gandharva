@@ -37,7 +37,38 @@ def is_four_part(score):
 def print_score_summary(score):
     """Print a human-readable summary of a score."""
     meta = get_metadata(score)
-    print("Title:", meta["title"])
-    print("Composer:", meta["composer"])
+    print("Title:", meta["title"] or "Unknown")
+    print("Composer:", meta["composer"] or "Unknown")
     print("Parts:", meta["parts"])
     print("Measures:", meta["measures"])
+
+    if score.parts:
+        first_part = score.parts[0]
+        first_measure = first_part.measure(1)
+
+        key_signature = first_measure.getContextByClass("KeySignature")
+        if key_signature:
+            print("Key Signature:", key_signature.sharps)
+        else:
+            print("Key Signature: not found")
+
+        time_signature = first_measure.getContextByClass("TimeSignature")
+        if time_signature:
+            print("Time Signature:", time_signature.ratioString)
+        else:
+            print("Time Signature: not found")
+
+        instruments = first_part.getInstruments(returnDefault=True)
+        if instruments:
+            names = [
+                instr.partName or instr.instrumentName or "Unnamed"
+                for instr in instruments
+            ]
+            print("Instruments:", ", ".join(names))
+        else:
+            print("Instruments: not specified")
+
+    if meta["measures"] == 0:
+        print("⚠️  Warning: no measures found.")
+    if meta["parts"] == 0:
+        print("⚠️  Warning: no parts found.")

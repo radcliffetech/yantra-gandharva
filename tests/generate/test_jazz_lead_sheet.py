@@ -2,7 +2,7 @@ import json
 import os
 import tempfile
 
-from src.generate.jazz_lead_sheet import create_lead_sheet
+from generate.jazz.lead_sheet import create_lead_sheet
 
 
 def test_create_lead_sheet_creates_musicxml_file():

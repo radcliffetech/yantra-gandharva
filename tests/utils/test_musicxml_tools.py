@@ -1,7 +1,7 @@
 import os
 import tempfile
 
-from music21 import metadata, note, stream
+from music21 import instrument, key, metadata, meter, note, stream
 
 from src.utils import musicxml_tools
 
@@ -56,3 +56,33 @@ def test_print_score_summary(capsys):
     assert "Composer: Composer Name" in out
     assert "Parts: 1" in out
     assert "Measures: 4" in out
+
+
+def test_print_score_summary_extended(capsys):
+    score = make_sample_score()
+
+    # Add key and time signatures and instrument
+    score.parts[0].insert(0, key.KeySignature(0))  # C Major
+    score.parts[0].insert(0, meter.TimeSignature("4/4"))
+    inst = instrument.Instrument()
+    inst.partName = "Piano"
+    inst.instrumentName = "Piano"
+    score.parts[0].insert(0, inst)
+    score.parts[0].partName = "Piano"
+
+    musicxml_tools.print_score_summary(score)
+    out = capsys.readouterr().out
+
+    assert "Key Signature:" in out
+    assert "Time Signature:" in out
+    assert "Instruments: Piano" in out
+
+
+def test_summary_on_real_musicxml_file(capsys):
+    path = "data/examples/example_output.musicxml"
+    score = musicxml_tools.load_musicxml(path)
+    musicxml_tools.print_score_summary(score)
+    out = capsys.readouterr().out
+    assert "Title:" in out
+    assert "Parts:" in out
+    assert "Measures:" in out

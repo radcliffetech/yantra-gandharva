@@ -1,0 +1,35 @@
+import os
+import sys
+
+# Ensure src/ is in sys.path for imports
+sys.path.insert(
+    0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "src"))
+)
+import argparse
+
+from colorama import Fore, Style, init
+
+from .commands import register_commands
+from .handlers import handler_map
+
+# For realize-figured-bass, import call_llm and realize_figured_bass_from_prompt directly
+
+init(autoreset=True)
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Yantra-Gandharva Score Generator")
+    subparsers = parser.add_subparsers(dest="command")
+    register_commands(subparsers)
+
+    args = parser.parse_args()
+
+    if args.command in handler_map:
+        handler_map[args.command](args)
+    else:
+        print(Fore.YELLOW + "Unknown or missing command.\n")
+        parser.print_help()
+
+
+if __name__ == "__main__":
+    main()
