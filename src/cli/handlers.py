@@ -10,7 +10,7 @@ from generate.partimento.export import (
     export_realized_partimento_to_musicxml,
 )
 from llm.client import call_llm
-from llm.tasks import generate_jazz
+from llm.tasks.jazz import generate
 from llm.tasks.partimento import generate
 from llm.tasks.partimento.realize import realize_partimento_satb
 from llm.tasks.partimento.review import review_partimento, review_realized_score
@@ -18,14 +18,8 @@ from utils.json_utils import apply_patch
 from utils.metadata_utils import generate_metadata
 from utils.musicxml_tools import load_musicxml
 
-
-def handle_lead_sheet(args):
-    print(Fore.CYAN + f"\n🎼 Creating MusicXML from {args.input}...")
-    os.makedirs("generated/musicxml", exist_ok=True)
-    timestamp = datetime.now().strftime("%Y-%m-%d_%H%M%S")
-    args.output = f"generated/musicxml/lead_sheet_{timestamp}.musicxml"
-    generate_jazz.generate_jazz_lead_sheet(args.input, args.output)
-    print(Fore.YELLOW + f"\n💾 MusicXML saved to {args.output}")
+# === PARTIMENTO GENERATION AND EXPORT ===
+# Handles generating partimenti, realizing them, and exporting to MusicXML and MIDI formats.
 
 
 def handle_partimento(args):
@@ -163,18 +157,6 @@ def handle_chain_partimento(args):
     print(Fore.YELLOW + f"🎧 MIDI saved to {midi_path}")
 
 
-def handle_export_partimento_to_musicxml(args):
-    print(
-        Fore.CYAN + f"\n🎼 Exporting partimento JSON to MusicXML from {args.input}..."
-    )
-    if not args.output:
-        os.makedirs("generated/musicxml", exist_ok=True)
-        timestamp = datetime.now().strftime("%Y-%m-%d_%H%M%S")
-        args.output = f"generated/musicxml/partimento_{timestamp}.musicxml"
-    export_partimento_to_musicxml(args.input, args.output)
-    print(Fore.YELLOW + f"\n💾 MusicXML saved to {args.output}")
-
-
 def handle_realize_partimento(args):
     print(Fore.CYAN + f"\n🎼 Realizing partimento from {args.input}...")
     realized_data = generate.realize_partimento_satb(args.input, call_llm)
@@ -194,6 +176,18 @@ def handle_realize_partimento(args):
     print(Fore.YELLOW + f"\n💾 Saved to {output_path}")
 
 
+def handle_export_partimento_to_musicxml(args):
+    print(
+        Fore.CYAN + f"\n🎼 Exporting partimento JSON to MusicXML from {args.input}..."
+    )
+    if not args.output:
+        os.makedirs("generated/musicxml", exist_ok=True)
+        timestamp = datetime.now().strftime("%Y-%m-%d_%H%M%S")
+        args.output = f"generated/musicxml/partimento_{timestamp}.musicxml"
+    export_partimento_to_musicxml(args.input, args.output)
+    print(Fore.YELLOW + f"\n💾 MusicXML saved to {args.output}")
+
+
 def handle_export_realized_partimento_to_musicxml(args):
     print(
         Fore.CYAN
@@ -207,19 +201,21 @@ def handle_export_realized_partimento_to_musicxml(args):
     print(Fore.YELLOW + f"\n💾 MusicXML saved to {args.output}")
 
 
-def handle_inspect_musicxml(args):
-    from utils.musicxml_tools import print_score_summary
+# === JAZZ/LEAD SHEET ===
+# Handler for creating lead sheets from JSON input.
 
-    print(Fore.CYAN + f"\n🔍 Inspecting MusicXML file: {args.input}...")
 
-    # load the MusicXML file
+def handle_lead_sheet(args):
+    print(Fore.CYAN + f"\n🎼 Creating MusicXML from {args.input}...")
+    os.makedirs("generated/musicxml", exist_ok=True)
+    timestamp = datetime.now().strftime("%Y-%m-%d_%H%M%S")
+    args.output = f"generated/musicxml/lead_sheet_{timestamp}.musicxml"
+    generate.generate_jazz_lead_sheet(args.input, args.output)
+    print(Fore.YELLOW + f"\n💾 MusicXML saved to {args.output}")
 
-    score = load_musicxml(args.input)
-    if not score:
-        print(Fore.RED + "❌ Failed to load MusicXML file.")
-        return
-    print(Fore.GREEN + "✅ Successfully loaded MusicXML file.")
-    print_score_summary(score)
+
+# === REVIEW AND REVISE ===
+# Includes functions to review partimenti and SATB realizations, and to apply patches.
 
 
 def handle_review_score(args):
@@ -323,6 +319,28 @@ def handle_revise_score(args):
 
     print(Fore.YELLOW + f"\n✅ Revised realization saved to {output_path}")
 
+
+# === UTILITY/INSPECTION ===
+# CLI tool for inspecting MusicXML files.
+
+
+def handle_inspect_musicxml(args):
+    from utils.musicxml_tools import print_score_summary
+
+    print(Fore.CYAN + f"\n🔍 Inspecting MusicXML file: {args.input}...")
+
+    # load the MusicXML file
+
+    score = load_musicxml(args.input)
+    if not score:
+        print(Fore.RED + "❌ Failed to load MusicXML file.")
+        return
+    print(Fore.GREEN + "✅ Successfully loaded MusicXML file.")
+    print_score_summary(score)
+
+
+# === HANDLER MAP ===
+# Dispatch map for all CLI commands to their corresponding handler functions.
 
 handler_map = {
     "lead-sheet": handle_lead_sheet,
