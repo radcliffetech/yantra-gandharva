@@ -1,3 +1,6 @@
+# ![CI](https://github.com/your-username/yantra-gandharva/actions/workflows/ci.yaml/badge.svg)
+# ![Black](https://img.shields.io/badge/code%20style-black-000000.svg)
+
 # Yantra Gandharva (यन्त्रगन्धर्व)
 
 > 1. The sacred mechanism of celestial music  

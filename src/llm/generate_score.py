@@ -5,13 +5,12 @@ import openai
 from .generate_figured_bass import generate_figured_bass_realization
 from .generate_jazz import generate_jazz_lead_sheet
 
-client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-
 
 def call_llm(system_prompt: str, user_prompt: str) -> str:
     """
     Call OpenAI Chat API and return JSON
     """
+    client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
     response = client.chat.completions.create(
         model="gpt-4o",
         messages=[
