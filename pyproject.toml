@@ -1,0 +1,12 @@
+[project]
+name = "yantra-gandharva"
+version = "0.1.0"
+description = "A modular engine for generating and rendering musical scores via LLMs and symbolic music tools"
+
+[tool.black]
+line-length = 88
+target-version = ["py311"]
+
+[tool.isort]
+profile = "black"
+line_length = 88
