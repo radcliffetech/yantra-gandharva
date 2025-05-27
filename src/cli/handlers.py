@@ -1,3 +1,65 @@
+# === GENERATE AND REVIEW PARTIMENTO HANDLER ===
+# Handler to generate, review, and export a partimento (without realization)
+
+
+def handle_generate_and_review_partimento(args):
+    print(Fore.CYAN + f"\n🎼 Generating and reviewing partimento...")
+
+    # Step 1: Generate partimento
+    partimento_data = generate.generate_partimento(args.prompt, call_llm)
+    partimento_output = {
+        **generate_metadata(args.prompt, "generate-partimento"),
+        "data": partimento_data,
+    }
+
+    # Determine base filename
+    if args.output:
+        base = args.output
+        # If endswith .json, strip for base
+        if base.endswith(".json"):
+            base = base[:-5]
+    else:
+        os.makedirs("generated/json", exist_ok=True)
+        timestamp = datetime.now().strftime("%Y-%m-%d_%H%M%S")
+        base = f"generated/json/partimento_{timestamp}"
+
+    json_path = f"{base}.json"
+    with open(json_path, "w") as f:
+        f.write(json.dumps(partimento_output, indent=2))
+    print(Fore.YELLOW + f"\n💾 Partimento saved to {json_path}")
+
+    # Step 2: Review partimento
+    print(Fore.CYAN + f"\n🔍 Reviewing partimento...")
+    review_json = review_partimento(json_path, call_llm)
+    review_data = json.loads(review_json)
+
+    os.makedirs("generated/review", exist_ok=True)
+    # Use same timestamp as above if possible
+    if "timestamp" not in locals():
+        timestamp = datetime.now().strftime("%Y-%m-%d_%H%M%S")
+    review_path = f"generated/review/review_partimento_{timestamp}.json"
+    with open(review_path, "w") as f:
+        f.write(
+            json.dumps(
+                {
+                    **generate_metadata(json_path, "review-partimento"),
+                    "data": review_data,
+                },
+                indent=2,
+            )
+        )
+    print(Fore.GREEN + f"\n✅ Partimento review saved to {review_path}")
+    print(Fore.YELLOW + "\n💬 Review Summary:")
+    print(Fore.GREEN + review_data.get("message", "No review message provided."))
+
+    # Step 3: Export to MusicXML
+    print(Fore.CYAN + f"\n🎼 Exporting partimento to MusicXML...")
+    os.makedirs("generated/musicxml", exist_ok=True)
+    xml_path = f"generated/musicxml/{os.path.basename(base)}.musicxml"
+    export_partimento_to_musicxml(json_path, xml_path)
+    print(Fore.YELLOW + f"\n✅ MusicXML saved to {xml_path}")
+
+
 import json
 import os
 from datetime import datetime
@@ -363,4 +425,5 @@ handler_map = {
     "review-score": handle_review_score,
     "review-partimento": handle_review_partimento,
     "revise-score": handle_revise_score,
+    "generate-and-review-partimento": handle_generate_and_review_partimento,
 }
