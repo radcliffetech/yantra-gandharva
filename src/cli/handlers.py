@@ -4,29 +4,31 @@ from datetime import datetime
 
 from colorama import Fore, Style
 
-from generate.partimento import (
+from generate.partimento.export import (
     export_partimento_to_musicxml,
+    export_realized_partimento_to_midi,
     export_realized_partimento_to_musicxml,
 )
 from llm.client import call_llm
-from llm.tasks import generate_jazz, generate_partimento
-from llm.tasks.generate_partimento import realize_partimento_satb
+from llm.tasks import generate_jazz
+from llm.tasks.partimento import generate
+from llm.tasks.partimento.realize import realize_partimento_satb
 from utils.metadata_utils import generate_metadata
+from utils.musicxml_tools import load_musicxml
 
 
 def handle_lead_sheet(args):
     print(Fore.CYAN + f"\n🎼 Creating MusicXML from {args.input}...")
-    if not args.output:
-        os.makedirs("generated/musicxml", exist_ok=True)
-        timestamp = datetime.now().strftime("%Y-%m-%d_%H%M%S")
-        args.output = f"generated/musicxml/lead_sheet_{timestamp}.musicxml"
+    os.makedirs("generated/musicxml", exist_ok=True)
+    timestamp = datetime.now().strftime("%Y-%m-%d_%H%M%S")
+    args.output = f"generated/musicxml/lead_sheet_{timestamp}.musicxml"
     generate_jazz.generate_jazz_lead_sheet(args.input, args.output)
     print(Fore.YELLOW + f"\n💾 MusicXML saved to {args.output}")
 
 
 def handle_partimento(args):
     print(Fore.CYAN + f"\n🎼 Generating partimento bass line from prompt...")
-    partimento_data = generate_partimento.generate_partimento(args.prompt, call_llm)
+    partimento_data = generate.generate_partimento(args.prompt, call_llm)
     output = {
         **generate_metadata(args.prompt, "generate-partimento"),
         "data": partimento_data,
@@ -57,7 +59,7 @@ def handle_chain_partimento(args):
     print(Fore.CYAN + f"\n🔗 Generating → Realizing → Exporting partimento...")
 
     # Generate partimento
-    partimento_data = generate_partimento.generate_partimento(args.prompt, call_llm)
+    partimento_data = generate.generate_partimento(args.prompt, call_llm)
     partimento_output = {
         **generate_metadata(args.prompt, "generate-partimento"),
         "data": partimento_data,
@@ -94,6 +96,12 @@ def handle_chain_partimento(args):
     export_realized_partimento_to_musicxml(realized_path, xml_path)
     print(Fore.YELLOW + f"🎼 MusicXML saved to {xml_path}")
 
+    # Export to MIDI
+    os.makedirs("generated/midi", exist_ok=True)
+    midi_path = f"generated/midi/{os.path.basename(base)}_realized.mid"
+    export_realized_partimento_to_midi(realized_path, midi_path)
+    print(Fore.YELLOW + f"🎧 MIDI saved to {midi_path}")
+
 
 def handle_export_partimento_to_musicxml(args):
     print(
@@ -109,7 +117,7 @@ def handle_export_partimento_to_musicxml(args):
 
 def handle_realize_partimento(args):
     print(Fore.CYAN + f"\n🎼 Realizing partimento from {args.input}...")
-    realized_data = generate_partimento.realize_partimento_satb(args.input, call_llm)
+    realized_data = generate.realize_partimento_satb(args.input, call_llm)
     output_json = json.dumps(realized_data, indent=2)
     print(Fore.GREEN + "\n✅ Realized partimento:\n" + Style.RESET_ALL + output_json)
 
@@ -139,6 +147,21 @@ def handle_export_realized_partimento_to_musicxml(args):
     print(Fore.YELLOW + f"\n💾 MusicXML saved to {args.output}")
 
 
+def handle_inspect_musicxml(args):
+    from utils.musicxml_tools import print_score_summary
+
+    print(Fore.CYAN + f"\n🔍 Inspecting MusicXML file: {args.input}...")
+
+    # load the MusicXML file
+
+    score = load_musicxml(args.input)
+    if not score:
+        print(Fore.RED + "❌ Failed to load MusicXML file.")
+        return
+    print(Fore.GREEN + "✅ Successfully loaded MusicXML file.")
+    print_score_summary(score)
+
+
 handler_map = {
     "lead-sheet": handle_lead_sheet,
     "generate-partimento": handle_partimento,
@@ -146,4 +169,5 @@ handler_map = {
     "export-partimento-to-musicxml": handle_export_partimento_to_musicxml,
     "export-realized-partimento-to-musicxml": handle_export_realized_partimento_to_musicxml,
     "realize-partimento": handle_realize_partimento,
+    "inspect-musicxml": handle_inspect_musicxml,
 }

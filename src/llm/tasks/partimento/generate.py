@@ -6,10 +6,7 @@ import json
 
 from dotenv import load_dotenv
 
-from ..prompts.partimento import (
-    PARTIMENTO_REALIZE_SATB_SYSTEM_PROMPT,
-    PARTIMENTO_SYSTEM_PROMPT,
-)
+from ...prompts.partimento import PARTIMENTO_SYSTEM_PROMPT
 
 load_dotenv()
 
@@ -22,10 +19,4 @@ def generate_partimento(prompt: str, call_llm) -> dict:
     system_prompt = PARTIMENTO_SYSTEM_PROMPT
     user_prompt = prompt
     response = call_llm(system_prompt, user_prompt)
-    return json.loads(response)
-
-
-def realize_partimento_satb(json_data: str, call_llm) -> dict:
-    user_prompt = "Realize this object:\n\n" + json.dumps(json_data, indent=2)
-    response = call_llm(PARTIMENTO_REALIZE_SATB_SYSTEM_PROMPT, user_prompt)
     return json.loads(response)

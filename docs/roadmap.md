@@ -14,9 +14,10 @@
 - [x] LLM-backed prompt-based realization engine
 - [x] CI/CD with linting and formatting
 - [x] Pre-commit hooks for code hygiene
-- [ ] MusicXML inspection and summarization via CLI
+- [x] MusicXML inspection and summarization via CLI
 - [x] CLI command for chaining prompt → JSON → MusicXML in one go
-- [ ] Export to PDF and MIDI via backend tools (MuseScore, music21)
+- [x] Export to MIDI
+- [ ] Export to PDF
 
 ---
 

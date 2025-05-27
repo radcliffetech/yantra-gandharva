@@ -63,6 +63,13 @@ def register_export_realized_partimento_to_musicxml(subparsers):
     )
 
 
+def register_inspect_musicxml(subparsers):
+    parser = subparsers.add_parser(
+        "inspect-musicxml", help="Print summary of a MusicXML file"
+    )
+    parser.add_argument("input", help="Path to .musicxml file to inspect")
+
+
 def register_commands(subparsers):
     register_lead_sheet(subparsers)
     register_generate_partimento(subparsers)
@@ -70,3 +77,4 @@ def register_commands(subparsers):
     register_export_partimento_to_musicxml(subparsers)
     register_realize_partimento(subparsers)
     register_export_realized_partimento_to_musicxml(subparsers)
+    register_inspect_musicxml(subparsers)

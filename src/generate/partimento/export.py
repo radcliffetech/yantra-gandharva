@@ -62,7 +62,10 @@ def export_realized_partimento_to_musicxml(realized_json_path: str, output_path:
             ql = 4.0 / note_count if note_count > 0 else 4.0
 
             for note_str in measure_notes:
-                n = note.Note(note_str)
+                normalized = (
+                    note_str.replace("♯", "#").replace("♭", "b").replace("♮", "")
+                )
+                n = note.Note(normalized)
                 n.quarterLength = ql
                 m.append(n)
 
@@ -71,3 +74,39 @@ def export_realized_partimento_to_musicxml(realized_json_path: str, output_path:
         score.append(part)
 
     score.write("musicxml", fp=output_path)
+
+
+def export_realized_partimento_to_midi(realized_json_path: str, output_path: str):
+    """
+    Export a realized partimento SATB JSON file to a MIDI file.
+    """
+    with open(realized_json_path, "r") as f:
+        data = json.load(f)["data"]
+
+    score = stream.Score()
+    score.metadata = metadata.Metadata()
+    score.metadata.title = data.get("title", "Realized Partimento")
+
+    for voice_name in ["soprano", "alto", "tenor", "bass"]:
+        voice_notes = data[voice_name]
+        part = stream.Part(id=voice_name)
+        part.partName = voice_name.capitalize()
+
+        for i, measure_notes in enumerate(voice_notes):
+            m = stream.Measure(number=i + 1)
+            note_count = len(measure_notes)
+            ql = 4.0 / note_count if note_count > 0 else 4.0
+
+            for note_str in measure_notes:
+                normalized = (
+                    note_str.replace("♯", "#").replace("♭", "b").replace("♮", "")
+                )
+                n = note.Note(normalized)
+                n.quarterLength = ql
+                m.append(n)
+
+            part.append(m)
+
+        score.append(part)
+
+    score.write("midi", fp=output_path)
