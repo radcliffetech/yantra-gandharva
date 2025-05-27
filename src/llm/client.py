@@ -18,5 +18,5 @@ def call_llm(system_prompt: str, user_prompt: str) -> str:
         response_format={"type": "json_object"},
     )
     data = response.choices[0].message.content.strip()
-    print(f"LLM Response: {data}")  # Debugging output
+    # print(f"LLM Response: {data}")  # Debugging output
     return data

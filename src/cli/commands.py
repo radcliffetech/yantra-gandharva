@@ -1,3 +1,21 @@
+def register_review_score(subparsers):
+    parser = subparsers.add_parser(
+        "review-score", help="Use LLM to review a realized SATB partimento"
+    )
+    parser.add_argument("input", help="Path to the realized SATB JSON file")
+
+
+def register_revise_score(subparsers):
+    parser = subparsers.add_parser(
+        "revise-score", help="Apply a patch to a realized partimento"
+    )
+    parser.add_argument("input", help="Path to the realized SATB JSON file")
+    parser.add_argument(
+        "patch", help="Path to the JSON review file with suggested_patch"
+    )
+    parser.add_argument("--output", "-o", help="Path to save the revised JSON")
+
+
 def register_lead_sheet(subparsers):
     parser = subparsers.add_parser(
         "lead-sheet", help="Generate MusicXML from a lead sheet JSON file"
@@ -70,6 +88,13 @@ def register_inspect_musicxml(subparsers):
     parser.add_argument("input", help="Path to .musicxml file to inspect")
 
 
+def register_review_partimento(subparsers):
+    parser = subparsers.add_parser(
+        "review-partimento", help="Use LLM to review a partimento structure"
+    )
+    parser.add_argument("input", help="Path to the partimento JSON file")
+
+
 def register_commands(subparsers):
     register_lead_sheet(subparsers)
     register_generate_partimento(subparsers)
@@ -78,3 +103,6 @@ def register_commands(subparsers):
     register_realize_partimento(subparsers)
     register_export_realized_partimento_to_musicxml(subparsers)
     register_inspect_musicxml(subparsers)
+    register_review_score(subparsers)
+    register_revise_score(subparsers)
+    register_review_partimento(subparsers)

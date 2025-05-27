@@ -46,9 +46,8 @@
 ## 🧠 Language + Semantics
 
 - [x] Pluggable LLM system with mockable `call_llm` function
-- [ ] Add support for local models via `ollama` or `transformers`
-- [ ] Score review: have the LLM critique generated MusicXML
-- [ ] Prompt templating system with dynamic substitutions
+- [x] Score review: have the LLM critique generated MusicXML
+
 
 ---
 
