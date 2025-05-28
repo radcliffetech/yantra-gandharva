@@ -1,8 +1,10 @@
 import json
 import os
+import re
 import subprocess
 import uuid
 from datetime import datetime
+from pathlib import Path
 
 from colorama import Fore, Style
 
@@ -31,7 +33,7 @@ def handle_chain_partimento_only(args):
     chain_dir = args.output or f"generated/chains/partimento_{timestamp}"
     os.makedirs(chain_dir, exist_ok=True)
 
-    base_json_path = os.path.join(chain_dir, "partimento.json")
+    base_json_path = os.path.join(chain_dir, "partimento_01.json")
     xml_path = os.path.join(chain_dir, "partimento.musicxml")
 
     # Step 1: Generate partimento
@@ -54,7 +56,7 @@ def handle_chain_partimento_only(args):
         review_json = review_partimento(current_json_path, call_llm)
         review_data = json.loads(review_json)
 
-        iter_review_path = os.path.join(chain_dir, f"review_partimento_{i+1}.json")
+        iter_review_path = os.path.join(chain_dir, f"review_partimento_{i+1:02}.json")
         with open(iter_review_path, "w") as f:
             f.write(
                 json.dumps(
@@ -82,8 +84,8 @@ def handle_chain_partimento_only(args):
             working_data = json.load(f)
         updated = apply_patch(working_data["data"], patch)
 
-        # Write updated file with numeric suffix
-        new_json_path = os.path.join(chain_dir, f"partimento_{i+1}.json")
+        # Write updated file with zero-padded numeric suffix
+        new_json_path = os.path.join(chain_dir, f"partimento_{i+2:02}.json")
         working_data["data"] = updated
         with open(new_json_path, "w") as f:
             json.dump(working_data, f, indent=2)
@@ -93,7 +95,7 @@ def handle_chain_partimento_only(args):
 
     # Step 3: Export to MusicXML (use last version)
     print(Fore.CYAN + f"\n🎼 Exporting final partimento to MusicXML...")
-    export_partimento_to_musicxml(current_json_path, xml_path)
+    export_partimento(current_json_path, xml_path)
     print(Fore.YELLOW + f"\n✅ MusicXML saved to {xml_path}")
     # Export to MIDI
     midi_path = os.path.join(chain_dir, "partimento.mid")
@@ -105,6 +107,7 @@ def handle_chain_partimento_only(args):
         "partimento_versions": partimento_versions,
         "review_versions": review_versions,
         "musicxml": os.path.basename(xml_path),
+        "midi": os.path.basename(midi_path),
     }
     with open(meta_path, "w") as f:
         json.dump(
@@ -125,11 +128,11 @@ def handle_chain_partimento_only(args):
     print(Fore.YELLOW + f"📄 Chain ID: {os.path.basename(chain_dir)}")
     print(Fore.YELLOW + f"📁 Output dir: {chain_dir}")
     print(Fore.YELLOW + f"🎼 Prompt style: {args.prompt}")
+    ogg_path = midi_path.replace(".mid", ".ogg")
     print(Fore.YELLOW + f"🎧 Audio preview: {ogg_path}")
     print(Fore.YELLOW + f"📝 Iterations: {args.iterations}")
     print(Fore.CYAN + f"\n🔗 Complete. Data is stored in {chain_dir}")
 
-    ogg_path = midi_path.replace(".mid", ".ogg")
     print(Fore.CYAN + f"\n🎧 Writing OGG file: {ogg_path}")
     if not os.path.exists(midi_path):
         print(Fore.RED + "❌ MIDI file not found.")
@@ -147,11 +150,7 @@ def handle_chain_partimento_only(args):
         )
 
 
-# === PARTIMENTO GENERATION AND EXPORT ===
-# Handles generating partimenti, realizing them, and exporting to MusicXML and MIDI formats.
-
-
-def handle_partimento(args):
+def handle_generate_partimento(args):
     print(Fore.CYAN + f"\n🎼 Generating partimento bass line from prompt...")
     partimento_data = genarate_partimento.generate_partimento(args.prompt, call_llm)
     output = {
@@ -161,22 +160,48 @@ def handle_partimento(args):
     output_json = json.dumps(output, indent=2)
     print(Fore.GREEN + "\n✅ Generated partimento:\n" + Style.RESET_ALL + output_json)
 
-    # Determine output path
-    if args.output:
-        output_path = args.output
+    # Helper function to check if a path is likely a directory (no file extension)
+    def is_likely_directory(path):
+        return not os.path.splitext(path)[1]
+
+    # Determine output path using chain-aware logic
+    if args.output and is_likely_directory(args.output):
+        chain_dir = args.output
+        os.makedirs(chain_dir, exist_ok=True)
+        json_path = os.path.join(chain_dir, "partimento.json")
+        xml_path = os.path.join(chain_dir, "partimento.musicxml")
+        is_chain = True
     else:
         os.makedirs("generated/json", exist_ok=True)
         timestamp = datetime.now().strftime("%Y-%m-%d_%H%M%S")
-        output_path = f"generated/json/partimento_{timestamp}.json"
+        json_path = args.output or f"generated/json/partimento_{timestamp}.json"
+        xml_path = json_path.replace(".json", ".musicxml")
+        is_chain = False
 
-    with open(output_path, "w") as f:
+    with open(json_path, "w") as f:
         f.write(output_json)
-    print(Fore.YELLOW + f"\n💾 Saved to {output_path}")
+    print(Fore.YELLOW + f"\n💾 Saved to {json_path}")
 
     # Export to MusicXML
-    xml_path = output_path.replace(".json", ".musicxml")
-    os.makedirs("generated/musicxml", exist_ok=True)
-    export_partimento_to_musicxml(output_path, xml_path)
+    export_partimento_to_musicxml(json_path, xml_path)
+    export_partimento_to_midi(json_path, xml_path.replace(".musicxml", ".mid"))
+
+    # Write metadata.json if using a chain directory
+    if is_chain:
+        meta_path = os.path.join(chain_dir, "metadata.json")
+        metadata = {
+            "id": str(uuid.uuid4()),
+            "created_at": datetime.now().isoformat() + "Z",
+            "mode": "generate-partimento",
+            "prompt": args.prompt,
+            "files": {
+                "partimento": os.path.basename(json_path),
+                "musicxml": os.path.basename(xml_path),
+            },
+            "version": "0.1.0",
+        }
+        with open(meta_path, "w") as f:
+            json.dump(metadata, f, indent=2)
 
 
 # Chain partimento handler
@@ -269,7 +294,9 @@ def handle_chain_partimento_realization(args):
     # Export partimento to MIDI (for OGG export)
     midi_path = os.path.join(chain_dir, "partimento.mid")
     export_partimento_to_midi(current_partimento_path, midi_path)
+
     print(Fore.YELLOW + f"🎧 Partimento MIDI saved to {midi_path}")
+
     # Export OGG for partimento
     ogg_path = midi_path.replace(".mid", ".ogg")
     if os.path.exists(midi_path):
@@ -463,73 +490,210 @@ def handle_chain_partimento_realization(args):
 def handle_realize_partimento(args):
     print(Fore.CYAN + f"\n🎼 Realizing partimento from {args.input}...")
     realized_data = realize.realize_partimento_satb(args.input, call_llm)
-    output_json = json.dumps(realized_data, indent=2)
-    print(Fore.GREEN + "\n✅ Realized partimento:\n" + Style.RESET_ALL + output_json)
+    print(
+        Fore.GREEN
+        + "\n✅ Realized partimento:\n"
+        + Style.RESET_ALL
+        + json.dumps(realized_data, indent=2)
+    )
 
-    # Determine output path
-    if args.output:
-        output_path = args.output
+    # Helper function to check if a path is likely a directory (no file extension)
+    def is_likely_directory(path):
+        return not os.path.splitext(path)[1]
+
+    # Helper to write realization JSON with metadata
+    def write_realization_json(
+        data, output_path, *, mode, source_path=None, prompt=None
+    ):
+        payload = {
+            "id": str(uuid.uuid4()),
+            "created_at": datetime.now().isoformat() + "Z",
+            "mode": mode,
+            "source": source_path or "unknown",
+            "user_prompt": prompt or None,
+            "version": "0.1.0",
+            "data": data,
+        }
+        with open(output_path, "w") as f:
+            json.dump(payload, f, indent=2)
+
+    def write_partimento_json(
+        data, output_path, *, mode, source_path=None, prompt=None
+    ):
+        payload = {
+            "id": str(uuid.uuid4()),
+            "created_at": datetime.now().isoformat() + "Z",
+            "mode": mode,
+            "source": source_path or "unknown",
+            "user_prompt": prompt or None,
+            "version": "0.1.0",
+            "data": data,
+        }
+        with open(output_path, "w") as f:
+            json.dump(payload, f, indent=2)
+
+    # Determine output path and whether it's a "chain" directory
+    if args.output and is_likely_directory(args.output):
+        os.makedirs(args.output, exist_ok=True)
+        output_path = os.path.join(args.output, "realized.json")
+        is_chain = True
     else:
         os.makedirs("generated/json", exist_ok=True)
         timestamp = datetime.now().strftime("%Y-%m-%d_%H%M%S")
-        output_path = f"generated/json/realized_partimento_{timestamp}.json"
+        output_path = (
+            args.output or f"generated/json/realized_partimento_{timestamp}.json"
+        )
+        is_chain = False
 
-    with open(output_path, "w") as f:
-        f.write(output_json)
+    # Load partimento.json as full metadata-wrapped source and extract values
+    if os.path.exists(args.input):
+        with open(args.input, "r") as f:
+            source_data = json.load(f)
+        source = args.input
+        prompt = source_data.get("user_prompt") or source_data.get("prompt")
+    else:
+        source = args.input
+        prompt = None
+
+    write_realization_json(
+        realized_data,
+        output_path,
+        mode="realize-partimento",
+        source_path=source,
+        prompt=prompt,
+    )
     print(Fore.YELLOW + f"\n💾 Saved to {output_path}")
 
+    # Write metadata.json and copy original partimento if using a chain directory
+    if is_chain:
+        # Also copy the input partimento into the chain folder if not already there
+        partimento_copy_path = os.path.join(args.output, "partimento.json")
+        if not os.path.exists(partimento_copy_path):
+            with open(args.input, "r") as f:
+                part_data = json.load(f)
+                write_partimento_json(
+                    part_data,
+                    partimento_copy_path,
+                    mode="partimento",
+                    source_path=source,
+                    prompt=prompt,
+                )
 
-def handle_export_partimento_to_musicxml(args):
-    print(
-        Fore.CYAN + f"\n🎼 Exporting partimento JSON to MusicXML from {args.input}..."
-    )
-    if not args.output:
-        os.makedirs("generated/musicxml", exist_ok=True)
-        timestamp = datetime.now().strftime("%Y-%m-%d_%H%M%S")
-        args.output = f"generated/musicxml/partimento_{timestamp}.musicxml"
-    export_partimento_to_musicxml(args.input, args.output)
-    print(Fore.YELLOW + f"\n💾 MusicXML saved to {args.output}")
+        meta_path = os.path.join(args.output, "metadata.json")
+        meta = {
+            "id": str(uuid.uuid4()),
+            "created_at": datetime.now().isoformat() + "Z",
+            "mode": "realize-partimento",
+            "source_file": args.input,
+            "realized_file": os.path.basename(output_path),
+            "partimento_file": os.path.basename(partimento_copy_path),
+            "version": "0.1.0",
+        }
+        with open(meta_path, "w") as f:
+            json.dump(meta, f, indent=2)
 
 
-def handle_export_realized_partimento_to_musicxml(args):
-    print(
-        Fore.CYAN
-        + f"\n🎼 Exporting realized partimento JSON to MusicXML from {args.input}..."
-    )
-    if not args.output:
-        os.makedirs("generated/musicxml", exist_ok=True)
-        timestamp = datetime.now().strftime("%Y-%m-%d_%H%M%S")
-        args.output = f"generated/musicxml/realized_partimento_{timestamp}.musicxml"
-    export_realized_partimento_to_musicxml(args.input, args.output)
-    print(Fore.YELLOW + f"\n💾 MusicXML saved to {args.output}")
+def handle_export_partimento(args):
+    print(Fore.CYAN + f"\n🎼 Exporting partimento JSON from {args.input}...")
+
+    if args.output and not Path(args.output).suffix:
+        os.makedirs(args.output, exist_ok=True)
+        musicxml_path = os.path.join(args.output, "partimento.musicxml")
+        midi_path = os.path.join(args.output, "partimento.mid")
+    else:
+        base = args.output or args.input
+        stem = Path(base).with_suffix("").as_posix()
+        musicxml_path = f"{stem}.musicxml"
+        midi_path = f"{stem}.mid"
+
+    print(Fore.CYAN + f"  ➤ Exporting MusicXML to {musicxml_path} ...")
+    export_partimento_to_musicxml(args.input, musicxml_path)
+    print(Fore.YELLOW + f"🎼 MusicXML saved to {musicxml_path}")
+    print(Fore.CYAN + f"  ➤ Exporting MIDI to {midi_path} ...")
+    export_partimento_to_midi(args.input, midi_path)
+    print(Fore.YELLOW + f"🎧 MIDI saved to {midi_path}")
+
+    # Export OGG audio
+    ogg_path = midi_path.replace(".mid", ".ogg")
+    print(Fore.CYAN + f"  ➤ Converting MIDI to OGG: {ogg_path}")
+    if os.path.exists(midi_path):
+        try:
+            subprocess.run(["timidity", midi_path, "-Ow", "-o", ogg_path], check=True)
+            print(Fore.YELLOW + f"🎧 OGG audio saved to {ogg_path}")
+        except FileNotFoundError:
+            print(Fore.YELLOW + "⚠️  Timidity not found. Skipping OGG audio export.")
+    else:
+        print(Fore.RED + "❌ MIDI file not found. Cannot convert to OGG.")
+
+
+def handle_export_realization(args):
+    print(Fore.CYAN + f"\n🎼 Exporting realized partimento JSON from {args.input}...")
+
+    if args.output and not Path(args.output).suffix:
+        os.makedirs(args.output, exist_ok=True)
+        musicxml_path = os.path.join(args.output, "realized.musicxml")
+        midi_path = os.path.join(args.output, "realized.mid")
+    else:
+        base = args.output or args.input
+        stem = Path(base).with_suffix("").as_posix()
+        musicxml_path = f"{stem}.musicxml"
+        midi_path = f"{stem}.mid"
+
+    print(Fore.CYAN + f"  ➤ Exporting MusicXML to {musicxml_path} ...")
+    export_realized_partimento_to_musicxml(args.input, musicxml_path)
+    print(Fore.YELLOW + f"🎼 MusicXML saved to {musicxml_path}")
+    print(Fore.CYAN + f"  ➤ Exporting MIDI to {midi_path} ...")
+    export_realized_partimento_to_midi(args.input, midi_path)
+    print(Fore.YELLOW + f"🎧 MIDI saved to {midi_path}")
+    # Export OGG audio
+    ogg_path = midi_path.replace(".mid", ".ogg")
+    print(Fore.CYAN + f"  ➤ Converting MIDI to OGG: {ogg_path}")
+    if os.path.exists(midi_path):
+        try:
+            subprocess.run(["timidity", midi_path, "-Ow", "-o", ogg_path], check=True)
+            print(Fore.YELLOW + f"🎧 OGG audio saved to {ogg_path}")
+        except FileNotFoundError:
+            print(Fore.YELLOW + "⚠️  Timidity not found. Skipping OGG audio export.")
+    else:
+        print(Fore.RED + "❌ MIDI file not found. Cannot convert to OGG.")
 
 
 # === REVIEW AND REVISE ===
 # Includes functions to review partimenti and SATB realizations, and to apply patches.
 
 
-def handle_review_score(args):
+def write_review_json(data, output_path, *, mode, source_path=None, prompt=None):
+    payload = {
+        "id": str(uuid.uuid4()),
+        "created_at": datetime.now().isoformat() + "Z",
+        "mode": mode,
+        "source": source_path or "unknown",
+        "user_prompt": prompt or None,
+        "version": "0.1.0",
+        "data": data,
+    }
+    with open(output_path, "w") as f:
+        json.dump(payload, f, indent=2)
+
+
+def handle_review_realization(args):
     print(Fore.CYAN + f"\n🔍 Reviewing realized partimento from {args.input}...")
     review_json = review_realized_score(args.input, call_llm)
     review_data = json.loads(review_json)
-
-    metadata = generate_metadata(args.input, "review-partimento")
-    output = {**metadata, "data": review_data}
 
     # Determine output path: prefer chain-style if output is a directory
     if args.output and os.path.isdir(args.output):
         chain_dir = args.output
         os.makedirs(chain_dir, exist_ok=True)
-        # Use timestamp for consistency
-        timestamp = datetime.now().strftime("%Y-%m-%d_%H%M%S")
         output_path = os.path.join(chain_dir, "review_realization.json")
     else:
         os.makedirs("generated/review", exist_ok=True)
         timestamp = datetime.now().strftime("%Y-%m-%d_%H%M%S")
         output_path = f"generated/review/review_{timestamp}.json"
 
-    with open(output_path, "w") as f:
-        f.write(json.dumps(output, indent=2))
+    write_review_json(
+        review_data, output_path, mode="review-score", source_path=args.input
+    )
 
     print(Fore.GREEN + "\n✅ Review saved to", output_path)
     print(Fore.YELLOW + "\n💬 Summary:")
@@ -565,26 +729,39 @@ def handle_review_score(args):
 
 
 def handle_review_partimento(args):
+    import re
+    from pathlib import Path
+
     print(Fore.CYAN + f"\n🔍 Reviewing partimento from {args.input}...")
     review_json = review_partimento(args.input, call_llm)
     review_data = json.loads(review_json)
 
-    metadata = generate_metadata(args.input, "review-partimento")
-    output = {**metadata, "data": review_data}
+    # Helper function to check if a path is likely a directory (no file extension)
+    def is_likely_directory(path):
+        return not os.path.splitext(path)[1]
 
-    # Determine output path: prefer chain-style if output is a directory
-    if args.output and os.path.isdir(args.output):
+    # Determine output path: prefer chain-style if output is a directory or likely directory, and increment filename
+    if args.output and is_likely_directory(args.output):
         chain_dir = args.output
         os.makedirs(chain_dir, exist_ok=True)
-        timestamp = datetime.now().strftime("%Y-%m-%d_%H%M%S")
-        output_path = os.path.join(chain_dir, "review_partimento.json")
+        base_name = "review_partimento"
+        existing_files = list(Path(chain_dir).glob(f"{base_name}_*.json"))
+        existing_numbers = [
+            int(re.search(r"_(\d+)\.json", str(f)).group(1))
+            for f in existing_files
+            if re.search(r"_(\d+)\.json", str(f))
+        ]
+        next_num = max(existing_numbers, default=0) + 1
+        output_path = os.path.join(chain_dir, f"{base_name}_{next_num}.json")
     else:
         os.makedirs("generated/review", exist_ok=True)
+
         timestamp = datetime.now().strftime("%Y-%m-%d_%H%M%S")
         output_path = f"generated/review/review_{timestamp}.json"
 
-    with open(output_path, "w") as f:
-        f.write(json.dumps(output, indent=2))
+    write_review_json(
+        review_data, output_path, mode="review-partimento", source_path=args.input
+    )
 
     print(Fore.GREEN + "\n✅ Review saved to", output_path)
     print(Fore.YELLOW + "\n💬 Summary:")
@@ -603,7 +780,7 @@ def handle_review_partimento(args):
             print(Fore.RED + f"- {i}")
 
     # Write metadata.json if using a chain directory
-    if args.output and os.path.isdir(args.output):
+    if args.output and is_likely_directory(args.output):
         meta_path = os.path.join(args.output, "metadata.json")
         import uuid
 
@@ -619,7 +796,7 @@ def handle_review_partimento(args):
             json.dump(meta, f, indent=2)
 
 
-def handle_revise_score(args):
+def handle_revise_realization(args):
     print(Fore.CYAN + f"\n🔧 Revising realization based on patch...")
 
     with open(args.input, "r") as f:
@@ -634,39 +811,95 @@ def handle_revise_score(args):
         return
 
     updated_data = apply_patch(original["data"], patch)
-    output = {
-        **generate_metadata(args.input, "revise-partimento"),
-        "data": updated_data,
-    }
 
     # Determine output path: prefer chain-style if output is a directory
     if args.output and os.path.isdir(args.output):
         chain_dir = args.output
         os.makedirs(chain_dir, exist_ok=True)
-        timestamp = datetime.now().strftime("%Y-%m-%d_%H%M%S")
-        output_path = os.path.join(chain_dir, "revised.json")
+        input_stem = Path(args.input).stem.replace(".json", "").replace("_", "-")
+        existing_files = list(Path(chain_dir).glob(f"{input_stem}_*.json"))
+        revision_numbers = [
+            int(re.search(r"_(\d+)\.json", str(f)).group(1))
+            for f in existing_files
+            if re.search(r"_(\d+)\.json", str(f))
+        ]
+        next_rev = max(revision_numbers, default=0) + 1
+        output_path = os.path.join(chain_dir, f"{input_stem}_{next_rev}.json")
     else:
         os.makedirs("generated/json", exist_ok=True)
+        from datetime import datetime
+
         timestamp = datetime.now().strftime("%Y-%m-%d_%H%M%S")
         output_path = (
             args.output or f"generated/json/revised_partimento_{timestamp}.json"
         )
 
-    with open(output_path, "w") as f:
-        f.write(json.dumps(output, indent=2))
+    write_review_json(
+        updated_data, output_path, mode="revise-partimento", source_path=args.input
+    )
 
     print(Fore.YELLOW + f"\n✅ Revised realization saved to {output_path}")
 
 
-# === HANDLER MAP ===
-# Dispatch map for all CLI commands to their corresponding handler functions.
+def handler_revise_partimento(args):
+    print(Fore.CYAN + f"\n🔧 Revising partimento based on patch...")
+
+    with open(args.input, "r") as f:
+        original = json.load(f)
+
+    with open(args.patch, "r") as f:
+        review = json.load(f)
+
+    patch = review.get("data", {}).get("suggested_patch")
+    if not patch:
+        print(Fore.RED + "❌ No suggested_patch found in review file.")
+        return
+
+    updated_data = apply_patch(original["data"], patch)
+
+    # Determine output path: prefer chain-style if output is a directory
+    if args.output and os.path.isdir(args.output):
+        chain_dir = args.output
+        os.makedirs(chain_dir, exist_ok=True)
+        input_stem = Path(args.input).stem.replace(".json", "").replace("_", "-")
+        existing_files = list(Path(chain_dir).glob(f"{input_stem}_*.json"))
+        revision_numbers = [
+            int(re.search(r"_(\d+)\.json", str(f)).group(1))
+            for f in existing_files
+            if re.search(r"_(\d+)\.json", str(f))
+        ]
+        next_rev = max(revision_numbers, default=0) + 1
+        output_path = os.path.join(chain_dir, f"{input_stem}_{next_rev}.json")
+    else:
+        os.makedirs("generated/json", exist_ok=True)
+        from datetime import datetime
+
+        timestamp = datetime.now().strftime("%Y-%m-%d_%H%M%S")
+        output_path = (
+            args.output or f"generated/json/revised_partimento_{timestamp}.json"
+        )
+
+    write_review_json(
+        updated_data, output_path, mode="revise-partimento", source_path=args.input
+    )
+
+    print(Fore.YELLOW + f"\n✅ Revised partimento saved to {output_path}")
+
 
 handler_map = {
-    "chain-partimento": handle_chain_partimento_realization,
+    # full chains
+    "chain-partimento-realization": handle_chain_partimento_realization,
     "chain-partimento-only": handle_chain_partimento_only,
-    "generate-partimento": handle_partimento,
-    "export-partimento-to-musicxml": handle_export_partimento_to_musicxml,
-    "export-realized-partimento-to-musicxml": handle_export_realized_partimento_to_musicxml,
+    # generate
+    "generate-partimento": handle_generate_partimento,
     "realize-partimento": handle_realize_partimento,
+    # review
     "review-partimento": handle_review_partimento,
+    "review-realization": handle_review_realization,
+    # revise
+    "revise-realization": handle_revise_realization,
+    "revise-partimento": handler_revise_partimento,
+    # export
+    "export-partimento": handle_export_partimento,
+    "export-realization": handle_export_realization,
 }

@@ -13,12 +13,19 @@ def export_partimento_to_musicxml(json_path: str, output_path: str):
 
     part = stream.Part()
     part.insert(0, clef.BassClef())
-    tonic, mode = data["key"].split()
+    key_str = data.get("key", "C")
+    parts = key_str.split()
+    tonic = parts[0]
+    mode = parts[1] if len(parts) > 1 else "major"
     part.append(key.Key(tonic, mode))
     part.append(meter.TimeSignature("4/4"))
 
     bassline = data["bassline"]
     figures = data["figures"]
+
+    # Normalize bassline if flat (e.g., ["C2", "D2", ...])
+    if all(isinstance(note, str) for note in bassline):
+        bassline = [[n] for n in bassline]
 
     for i, measure_notes in enumerate(bassline):
         m = stream.Measure(number=i + 1)
@@ -26,15 +33,19 @@ def export_partimento_to_musicxml(json_path: str, output_path: str):
         ql = 4.0 / note_count if note_count > 0 else 4.0
 
         for j, bass_note_str in enumerate(measure_notes):
-            bass = note.Note(normalize_note_string(bass_note_str))
-            bass.quarterLength = ql
+            note_str = normalize_note_string(bass_note_str)
+            try:
+                bass = note.Note(note_str)
+                bass.quarterLength = ql
 
-            fig = figures[i][j] if i < len(figures) and j < len(figures[i]) else []
-            if fig:
-                txt = " ".join(fig)
-                bass.addLyric(txt)
+                fig = figures[i][j] if i < len(figures) and j < len(figures[i]) else []
+                if fig:
+                    txt = " ".join(fig)
+                    bass.addLyric(txt)
 
-            m.append(bass)
+                m.append(bass)
+            except Exception as e:
+                print(f"⚠️ Skipping invalid bass note '{bass_note_str}': {e}")
 
         part.append(m)
 
@@ -143,12 +154,18 @@ def export_partimento_to_midi(json_path: str, output_path: str):
 
     part = stream.Part()
     part.insert(0, clef.BassClef())
-    tonic, mode = data["key"].split()
+    key_str = data.get("key", "C")
+    parts = key_str.split()
+    tonic = parts[0]
+    mode = parts[1] if len(parts) > 1 else "major"
     part.append(key.Key(tonic, mode))
     part.append(meter.TimeSignature("4/4"))
 
     bassline = data["bassline"]
     figures = data["figures"]
+
+    if all(isinstance(note, str) for note in bassline):
+        bassline = [[n] for n in bassline]
 
     for i, measure_notes in enumerate(bassline):
         m = stream.Measure(number=i + 1)
