@@ -138,6 +138,12 @@ def register_describe_chain(subparsers):
     )
 
 
+def register_list_realizations(subparsers):
+    parser = subparsers.add_parser(
+        "list-realizations", help="List all realization documents in Firebase"
+    )
+
+
 def register_commands(subparsers):
     register_chain_partimento(subparsers)
     register_describe_chain(subparsers)
@@ -153,3 +159,4 @@ def register_commands(subparsers):
     register_write_audio(subparsers)
     register_lead_sheet(subparsers)
     register_push_chain(subparsers)
+    register_list_realizations(subparsers)

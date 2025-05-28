@@ -19,7 +19,24 @@ from genres.partimento.tasks.export import (
 from genres.partimento.tasks.realize import realize_partimento_satb
 from genres.partimento.tasks.review import review_partimento, review_realized_score
 from lib.analysis.linting import lint_satb
-from lib.firebase_utils import save_realization_metadata, upload_file_to_storage
+from lib.firebase_utils import (
+    fetch_all_realizations,
+    save_realization_metadata,
+    upload_file_to_storage,
+)
+
+
+# === LIST REALIZATIONS HANDLER ===
+def handle_list_realizations(args):
+    print(Fore.CYAN + "\n📚 Listing all realizations from Firebase...")
+    realizations = fetch_all_realizations()
+    for r in realizations:
+        print(
+            Fore.YELLOW
+            + f"- {r.get('id')} | {r.get('prompt', 'No prompt')} | {r.get('created_at')}"
+        )
+
+
 from lib.utils.json_utils import apply_patch, load_json
 from lib.utils.llm_utils import call_llm
 from lib.utils.metadata_utils import generate_metadata
@@ -834,4 +851,5 @@ handler_map = {
     "revise-score": handle_revise_score,
     "export-audio": handle_write_audio,
     "push-chain": handle_push_chain,
+    "list-realizations": handle_list_realizations,
 }
