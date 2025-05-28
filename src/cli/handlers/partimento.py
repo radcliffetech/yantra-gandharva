@@ -1,13 +1,11 @@
 import json
 import os
 import subprocess
-import sys
 import uuid
 from datetime import datetime
 
 from colorama import Fore, Style
 
-from genres.jazz.tasks import generate as generate_jazz
 from genres.partimento.tasks import generate as genarate_partimento
 from genres.partimento.tasks import realize
 from genres.partimento.tasks.export import (
@@ -19,60 +17,10 @@ from genres.partimento.tasks.export import (
 from genres.partimento.tasks.realize import realize_partimento_satb
 from genres.partimento.tasks.review import review_partimento, review_realized_score
 from lib.analysis.linting import lint_satb
-from lib.firebase_utils import (
-    fetch_all_realizations,
-    save_realization_metadata,
-    upload_file_to_storage,
-)
-
-
-# === LIST REALIZATIONS HANDLER ===
-def handle_list_realizations(args):
-    print(Fore.CYAN + "\n📚 Listing all realizations from Firebase...")
-    realizations = fetch_all_realizations()
-    for r in realizations:
-        print(
-            Fore.YELLOW
-            + f"- {r.get('id')} | {r.get('prompt', 'No prompt')} | {r.get('created_at')}"
-        )
-
-
-from lib.utils.json_utils import apply_patch, load_json
+from lib.utils.json_utils import apply_patch
 from lib.utils.llm_utils import call_llm
 from lib.utils.metadata_utils import generate_metadata
-from lib.utils.musicxml_utils import load_musicxml
 from lib.utils.playback_utils import open_file_if_possible
-
-
-# === DESCRIBE CHAIN HANDLER ===
-# Prints chain metadata in a readable way
-def handle_describe_chain(args):
-    print(Fore.CYAN + f"\n📦 Describing chain: {args.input}")
-    meta_path = os.path.join(args.input, "metadata.json")
-    if not os.path.exists(meta_path):
-        print(Fore.RED + "❌ No metadata.json found in the specified directory.")
-        return
-
-    with open(meta_path, "r") as f:
-        metadata = json.load(f)
-
-    print(Fore.GREEN + "\n📄 Metadata:")
-    for key in ["id", "created_at", "mode", "prompt", "version"]:
-        print(Fore.YELLOW + f"{key}: {metadata.get(key)}")
-
-    print(Fore.YELLOW + "\n📁 Files:")
-    for k, v in metadata.get("files", {}).items():
-        print(Fore.YELLOW + f"  {k}: {v}")
-
-    if "patched" in metadata:
-        print(Fore.YELLOW + "\n🩹 Patches Applied:")
-        for k, v in metadata["patched"].items():
-            status = "✅" if v else "—"
-            print(Fore.YELLOW + f"  {k}: {status}")
-
-
-# === GENERATE AND REVIEW PARTIMENTO HANDLER ===
-# Handler to generate, review, and export a partimento (without realization)
 
 
 def handle_chain_partimento_only(args):
@@ -556,19 +504,6 @@ def handle_export_realized_partimento_to_musicxml(args):
     print(Fore.YELLOW + f"\n💾 MusicXML saved to {args.output}")
 
 
-# === JAZZ/LEAD SHEET ===
-# Handler for creating lead sheets from JSON input.
-
-
-def handle_lead_sheet(args):
-    print(Fore.CYAN + f"\n🎼 Creating MusicXML from {args.input}...")
-    os.makedirs("generated/musicxml", exist_ok=True)
-    timestamp = datetime.now().strftime("%Y-%m-%d_%H%M%S")
-    args.output = f"generated/musicxml/lead_sheet_{timestamp}.musicxml"
-    generate_jazz.generate_jazz_lead_sheet(args.input, args.output)
-    print(Fore.YELLOW + f"\n💾 MusicXML saved to {args.output}")
-
-
 # === REVIEW AND REVISE ===
 # Includes functions to review partimenti and SATB realizations, and to apply patches.
 
@@ -723,118 +658,10 @@ def handle_revise_score(args):
     print(Fore.YELLOW + f"\n✅ Revised realization saved to {output_path}")
 
 
-# === UTILITY/INSPECTION ===
-# CLI tool for inspecting MusicXML files.
-
-
-def handle_inspect_musicxml(args):
-    from lib.utils.musicxml_utils import print_score_summary
-
-    print(Fore.CYAN + f"\n🔍 Inspecting MusicXML file: {args.input}...")
-
-    # load the MusicXML file
-
-    score = load_musicxml(args.input)
-    if not score:
-        print(Fore.RED + "❌ Failed to load MusicXML file.")
-        return
-    print(Fore.GREEN + "✅ Successfully loaded MusicXML file.")
-    print_score_summary(score)
-
-
-def handle_write_audio(args):
-    import os
-    import shutil
-
-    from colorama import Fore
-
-    # If args.output is a directory, copy input file there for playback
-    midi_path = args.input
-    output_playback_path = None
-    if hasattr(args, "output") and args.output and os.path.isdir(args.output):
-        # Place the MIDI file in the shared output directory under a canonical name
-        output_playback_path = os.path.join(args.output, os.path.basename(args.input))
-        if os.path.abspath(midi_path) != os.path.abspath(output_playback_path):
-            shutil.copy2(midi_path, output_playback_path)
-        midi_path = output_playback_path
-
-    print(Fore.CYAN + f"\n🎧 Writing OGG file: {midi_path}")
-    if not os.path.exists(midi_path):
-        print(Fore.RED + "❌ MIDI file not found.")
-        return
-
-    # Try Timidity first
-    try:
-        subprocess.run(["timidity", midi_path], check=True)
-        return
-    except FileNotFoundError:
-        print(
-            Fore.YELLOW
-            + "⚠️  Timidity not found. Falling back to system default player..."
-        )
-
-    # Fallback: system-specific
-    if sys.platform.startswith("darwin"):
-        subprocess.run(["open", midi_path])
-    elif sys.platform.startswith("win"):
-        os.startfile(midi_path)
-    elif sys.platform.startswith("linux"):
-        subprocess.run(["xdg-open", midi_path])
-    else:
-        print(Fore.RED + "❌ Unsupported OS for playback.")
-
-
-# === GENERATE FROM JSON HANDLER ===
-# === GENERATE FROM JSON HANDLER ===
-def handle_generate_from_json(args):
-    genre = args.genre
-    if genre not in GENRE_REGISTRY:
-        print(f"❌ Unknown genre '{genre}'. Options: {list(GENRE_REGISTRY)}")
-        return
-
-    adapter = GENRE_REGISTRY[genre]
-    input_data = load_json(args.input)
-
-    realized = adapter.realize(input_data)
-    output_path = adapter.export(realized)
-
-    print(Fore.GREEN + f"\n✅ Generated and exported to {output_path}")
-
-
-# === PUSH CHAIN HANDLER ===
-def handle_push_chain(args):
-    print(Fore.CYAN + f"\n☁️ Uploading realization chain at {args.input} to Firebase...")
-
-    metadata_path = os.path.join(args.input, "metadata.json")
-    if not os.path.exists(metadata_path):
-        print(Fore.RED + "❌ metadata.json not found in specified directory.")
-        return
-
-    with open(metadata_path, "r") as f:
-        metadata = json.load(f)
-
-    musicxml_path = os.path.join(args.input, metadata["files"]["musicxml"])
-    if not os.path.exists(musicxml_path):
-        print(Fore.RED + f"❌ MusicXML file not found at {musicxml_path}")
-        return
-
-    # Upload MusicXML file
-    print(Fore.YELLOW + f"📤 Uploading MusicXML to Firebase Storage...")
-    remote_filename = os.path.basename(musicxml_path)
-    public_url = upload_file_to_storage(musicxml_path, remote_filename)
-    print(Fore.GREEN + f"✅ Uploaded: {public_url}")
-
-    # Add public_url to metadata and push Firestore doc
-    metadata["exported_musicxml_url"] = public_url
-    doc_id = save_realization_metadata(metadata)
-    print(Fore.GREEN + f"✅ Metadata saved to Firestore. Document ID: {doc_id}")
-
-
 # === HANDLER MAP ===
 # Dispatch map for all CLI commands to their corresponding handler functions.
 
 handler_map = {
-    # Partimento generation and review handlers
     "chain-partimento": handle_chain_partimento_realization,
     "chain-partimento-only": handle_chain_partimento_only,
     "generate-partimento": handle_partimento,
@@ -842,14 +669,4 @@ handler_map = {
     "export-realized-partimento-to-musicxml": handle_export_realized_partimento_to_musicxml,
     "realize-partimento": handle_realize_partimento,
     "review-partimento": handle_review_partimento,
-    # Jazz lead sheet handlers
-    "lead-sheet": handle_lead_sheet,
-    # Common handlers
-    "describe-chain": handle_describe_chain,
-    "inspect-musicxml": handle_inspect_musicxml,
-    "review-score": handle_review_score,
-    "revise-score": handle_revise_score,
-    "export-audio": handle_write_audio,
-    "push-chain": handle_push_chain,
-    "list-realizations": handle_list_realizations,
 }
