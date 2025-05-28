@@ -2,10 +2,10 @@ import json
 import os
 import tempfile
 
-from generate.jazz.lead_sheet import create_lead_sheet
+from genres.jazz.tasks.export import export_lead_sheet
 
 
-def test_create_lead_sheet_creates_musicxml_file():
+def test_export_lead_sheet_creates_musicxml_file():
     test_data = {
         "title": "Test Tune",
         "key": "C",
@@ -21,7 +21,7 @@ def test_create_lead_sheet_creates_musicxml_file():
         with open(json_path, "w") as f:
             json.dump(test_data, f)
 
-        create_lead_sheet(json_path, xml_path)
+        export_lead_sheet(json_path, xml_path)
 
         assert os.path.exists(xml_path)
         assert os.path.getsize(xml_path) > 0

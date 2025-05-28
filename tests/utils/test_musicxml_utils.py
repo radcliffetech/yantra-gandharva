@@ -3,7 +3,7 @@ import tempfile
 
 from music21 import instrument, key, metadata, meter, note, stream
 
-from src.utils import musicxml_tools
+from lib.utils import musicxml_utils
 
 
 def make_sample_score():
@@ -26,17 +26,17 @@ def test_save_and_load_musicxml():
     score = make_sample_score()
     with tempfile.TemporaryDirectory() as tmpdir:
         path = os.path.join(tmpdir, "test.musicxml")
-        musicxml_tools.save_musicxml(score, path)
+        musicxml_utils.save_musicxml(score, path)
         assert os.path.exists(path)
 
-        loaded = musicxml_tools.load_musicxml(path)
+        loaded = musicxml_utils.load_musicxml(path)
         assert isinstance(loaded, stream.Score)
         assert len(loaded.parts) == 1
 
 
 def test_get_metadata():
     score = make_sample_score()
-    meta = musicxml_tools.get_metadata(score)
+    meta = musicxml_utils.get_metadata(score)
     assert meta["title"] == "Test Title"
     assert meta["composer"] == "Composer Name"
     assert meta["parts"] == 1
@@ -45,12 +45,12 @@ def test_get_metadata():
 
 def test_is_four_part_true():
     score = make_sample_score()
-    assert musicxml_tools.is_four_part(score)
+    assert musicxml_utils.is_four_part(score)
 
 
 def test_print_score_summary(capsys):
     score = make_sample_score()
-    musicxml_tools.print_score_summary(score)
+    musicxml_utils.print_score_summary(score)
     out = capsys.readouterr().out
     assert "Title: Test Title" in out
     assert "Composer: Composer Name" in out
@@ -70,7 +70,7 @@ def test_print_score_summary_extended(capsys):
     score.parts[0].insert(0, inst)
     score.parts[0].partName = "Piano"
 
-    musicxml_tools.print_score_summary(score)
+    musicxml_utils.print_score_summary(score)
     out = capsys.readouterr().out
 
     assert "Key Signature:" in out
@@ -80,8 +80,8 @@ def test_print_score_summary_extended(capsys):
 
 def test_summary_on_real_musicxml_file(capsys):
     path = "data/examples/example_output.musicxml"
-    score = musicxml_tools.load_musicxml(path)
-    musicxml_tools.print_score_summary(score)
+    score = musicxml_utils.load_musicxml(path)
+    musicxml_utils.print_score_summary(score)
     out = capsys.readouterr().out
     assert "Title:" in out
     assert "Parts:" in out

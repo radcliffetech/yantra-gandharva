@@ -66,9 +66,13 @@ def export_realized_partimento_to_musicxml(realized_json_path: str, output_path:
                 normalized = (
                     note_str.replace("♯", "#").replace("♭", "b").replace("♮", "")
                 )
-                n = note.Note(normalized)
-                n.quarterLength = ql
-                m.append(n)
+                try:
+                    n = note.Note(normalized)
+                    n.quarterLength = ql
+                    m.append(n)
+                except Exception as e:
+                    print(f"⚠️  Skipped note '{note_str}': {e}")
+                    continue
 
             part.append(m)
 
@@ -102,9 +106,13 @@ def export_realized_partimento_to_midi(realized_json_path: str, output_path: str
                 normalized = (
                     note_str.replace("♯", "#").replace("♭", "b").replace("♮", "")
                 )
-                n = note.Note(normalized)
-                n.quarterLength = ql
-                m.append(n)
+                try:
+                    n = note.Note(normalized)
+                    n.quarterLength = ql
+                    m.append(n)
+                except Exception as e:
+                    print(f"⚠️  Skipped note '{note_str}': {e}")
+                    continue
 
             part.append(m)
 

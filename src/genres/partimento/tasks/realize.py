@@ -6,7 +6,7 @@ import json
 
 from dotenv import load_dotenv
 
-from ...prompts.partimento import PARTIMENTO_REALIZE_SATB_SYSTEM_PROMPT
+from ..prompts import PARTIMENTO_REALIZE_SATB_SYSTEM_PROMPT
 
 load_dotenv()
 

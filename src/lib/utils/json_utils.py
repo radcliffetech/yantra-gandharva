@@ -1,3 +1,6 @@
+import json
+
+
 def apply_patch(data: dict, patch: dict) -> dict:
     """
     Apply a patch to a SATB realization structure.
@@ -24,3 +27,19 @@ def apply_patch(data: dict, patch: dict) -> dict:
             except (ValueError, IndexError):
                 continue  # ignore invalid or out-of-bounds
     return data
+
+
+def load_json(json_path: str, default: dict = None) -> dict:
+    """
+    Load a JSON file and return its content as a dictionary.
+    If the file does not exist or is empty, return the default value.
+    """
+    try:
+        with open(json_path, "r") as f:
+            data = json.load(f)
+            if isinstance(data, dict):
+                return data
+            else:
+                raise ValueError("JSON content is not a dictionary.")
+    except (FileNotFoundError, json.JSONDecodeError, ValueError):
+        return default if default is not None else {}

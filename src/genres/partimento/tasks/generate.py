@@ -2,7 +2,7 @@ import json
 
 from dotenv import load_dotenv
 
-from ...prompts.partimento import PARTIMENTO_SYSTEM_PROMPT, get_partimento_user_prompt
+from ..prompts import PARTIMENTO_SYSTEM_PROMPT, get_partimento_user_prompt
 
 load_dotenv()
 

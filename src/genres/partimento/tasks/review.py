@@ -1,6 +1,6 @@
 import json
 
-from llm.prompts import review
+from genres.partimento import prompts
 
 
 def review_realized_score(json_path: str, call_llm) -> str:
@@ -8,10 +8,10 @@ def review_realized_score(json_path: str, call_llm) -> str:
         data = json.load(f)["data"]
 
     flat_repr = json.dumps(data, indent=2)
-    user_prompt = review.REVIEW_SATB_USER_PROMPT_TEMPLATE.replace(
+    user_prompt = prompts.REVIEW_SATB_USER_PROMPT_TEMPLATE.replace(
         "{{realization}}", flat_repr
     )
-    return call_llm(review.REVIEW_SATB_SYSTEM_PROMPT, user_prompt)
+    return call_llm(prompts.REVIEW_SATB_SYSTEM_PROMPT, user_prompt)
 
 
 def review_partimento(json_path: str, call_llm) -> str:
@@ -19,7 +19,7 @@ def review_partimento(json_path: str, call_llm) -> str:
         data = json.load(f)["data"]
 
     flat_repr = json.dumps(data, indent=2)
-    user_prompt = review.REVIEW_PARTIMENTO_USER_PROMPT_TEMPLATE.replace(
+    user_prompt = prompts.REVIEW_PARTIMENTO_USER_PROMPT_TEMPLATE.replace(
         "{{partimento}}", flat_repr
     )
-    return call_llm(review.REVIEW_PARTIMENTO_SYSTEM_PROMPT, user_prompt)
+    return call_llm(prompts.REVIEW_PARTIMENTO_SYSTEM_PROMPT, user_prompt)

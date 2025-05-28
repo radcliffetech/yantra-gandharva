@@ -1,4 +1,13 @@
-from music21 import converter, note
+from music21 import converter, metadata, note, stream
+
+
+def _normalize_note(note_str: str) -> str:
+    return (
+        note_str.replace("♭", "b")
+        .replace("♯", "#")
+        .replace("𝄪", "##")
+        .replace("𝄫", "bb")
+    )
 
 
 def load_musicxml(path: str):
@@ -72,3 +81,43 @@ def print_score_summary(score):
         print("⚠️  Warning: no measures found.")
     if meta["parts"] == 0:
         print("⚠️  Warning: no parts found.")
+
+
+def json_to_musicxml(json_data: dict):
+    """
+    Convert a JSON SATB realization (or wrapped {"data": …}) to a music21 Score.
+
+    Expected payload keys: 'soprano', 'alto', 'tenor', 'bass', optionally 'title'.
+    """
+    # unwrap if necessary
+    payload = json_data.get("data", json_data)
+
+    # Basic score
+    score = stream.Score()
+    md = metadata.Metadata()
+    md.title = payload.get("title", "Realized Partimento")
+    score.insert(0, md)
+
+    part_order = [
+        ("soprano", "Soprano"),
+        ("alto", "Alto"),
+        ("tenor", "Tenor"),
+        ("bass", "Bass"),
+    ]
+
+    for voice_key, part_name in part_order:
+        if voice_key not in payload:
+            continue
+        part_stream = stream.Part(id=voice_key)
+        part_stream.partName = part_name
+        voice_measures = payload[voice_key]
+
+        for m_idx, measure_notes in enumerate(voice_measures, start=1):
+            meas = stream.Measure(number=m_idx)
+            ql = 4.0 / max(len(measure_notes), 1)  # simple equal division
+            for n_str in measure_notes:
+                meas.append(note.Note(_normalize_note(n_str), quarterLength=ql))
+            part_stream.append(meas)
+        score.append(part_stream)
+
+    return score

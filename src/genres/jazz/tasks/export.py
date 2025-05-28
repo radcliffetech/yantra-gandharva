@@ -3,7 +3,7 @@ import json
 from music21 import harmony, key, metadata, meter, note, stream
 
 
-def create_lead_sheet(json_path: str, output_path: str):
+def export_lead_sheet(json_path: str, output_path: str):
     with open(json_path, "r") as f:
         data = json.load(f)
 

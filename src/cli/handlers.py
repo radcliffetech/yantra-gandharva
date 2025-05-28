@@ -1,4 +1,29 @@
-from utils.playback import open_file_if_possible
+import json
+import os
+import subprocess
+import sys
+import uuid
+from datetime import datetime
+
+from colorama import Fore, Style
+
+from genres.jazz.tasks import generate as generate_jazz
+from genres.partimento.tasks import generate as genarate_partimento
+from genres.partimento.tasks import realize
+from genres.partimento.tasks.export import (
+    export_partimento_to_midi,
+    export_partimento_to_musicxml,
+    export_realized_partimento_to_midi,
+    export_realized_partimento_to_musicxml,
+)
+from genres.partimento.tasks.realize import realize_partimento_satb
+from genres.partimento.tasks.review import review_partimento, review_realized_score
+from lib.analysis.linting import lint_satb
+from lib.utils.json_utils import apply_patch, load_json
+from lib.utils.llm_utils import call_llm
+from lib.utils.metadata_utils import generate_metadata
+from lib.utils.musicxml_utils import load_musicxml
+from lib.utils.playback_utils import open_file_if_possible
 
 
 # === DESCRIBE CHAIN HANDLER ===
@@ -28,30 +53,6 @@ def handle_describe_chain(args):
             print(Fore.YELLOW + f"  {k}: {status}")
 
 
-import json
-import os
-import subprocess
-import sys
-import uuid
-from datetime import datetime
-
-from colorama import Fore, Style
-
-from generate.partimento.export import (
-    export_partimento_to_midi,
-    export_partimento_to_musicxml,
-    export_realized_partimento_to_midi,
-    export_realized_partimento_to_musicxml,
-)
-from llm.client import call_llm
-from llm.tasks.jazz import generate
-from llm.tasks.partimento import generate
-from llm.tasks.partimento.realize import realize_partimento_satb
-from llm.tasks.partimento.review import review_partimento, review_realized_score
-from utils.json_utils import apply_patch
-from utils.metadata_utils import generate_metadata
-from utils.musicxml_tools import load_musicxml
-
 # === GENERATE AND REVIEW PARTIMENTO HANDLER ===
 # Handler to generate, review, and export a partimento (without realization)
 
@@ -68,7 +69,7 @@ def handle_chain_partimento_only(args):
     xml_path = os.path.join(chain_dir, "partimento.musicxml")
 
     # Step 1: Generate partimento
-    partimento_data = generate.generate_partimento(args.prompt, call_llm)
+    partimento_data = genarate_partimento.generate_partimento(args.prompt, call_llm)
     partimento_output = {
         **generate_metadata(args.prompt, "generate-partimento"),
         "data": partimento_data,
@@ -186,7 +187,7 @@ def handle_chain_partimento_only(args):
 
 def handle_partimento(args):
     print(Fore.CYAN + f"\n🎼 Generating partimento bass line from prompt...")
-    partimento_data = generate.generate_partimento(args.prompt, call_llm)
+    partimento_data = genarate_partimento.generate_partimento(args.prompt, call_llm)
     output = {
         **generate_metadata(args.prompt, "generate-partimento"),
         "data": partimento_data,
@@ -235,7 +236,7 @@ def handle_chain_partimento_realization(args):
     midi_path = f"{chain_dir}/realized.mid"
 
     # Generate partimento
-    partimento_data = generate.generate_partimento(args.prompt, call_llm)
+    partimento_data = genarate_partimento.generate_partimento(args.prompt, call_llm)
     partimento_output = {
         **generate_metadata(args.prompt, "generate-partimento"),
         "data": partimento_data,
@@ -326,70 +327,92 @@ def handle_chain_partimento_realization(args):
         f.write(json.dumps(realization_output, indent=2))
     print(Fore.YELLOW + f"\n🎶 Realization saved to {realized_path}")
 
-    # === Multiple review loops for realization ===
-    realization_versions = []
-    last_realized_path = realized_path
-    realization_patch = None
-    for i in range(args.iterations):
-        input_path = (
-            last_realized_path
-            if i == 0
-            else os.path.join(chain_dir, f"realized_{i}.json")
-        )
-        review_path = os.path.join(chain_dir, f"review_realization_{i+1}.json")
-        new_realized_path = os.path.join(chain_dir, f"realized_{i+1}.json")
+    # --- LINT SATB ---------------------------------------------------------
+    lint_report = lint_satb(realization)
+    print(Fore.CYAN + "\n🧹 Voice‑leading linter result:")
+    if lint_report["issues"]:
+        print(Fore.RED + f"❌ {len(lint_report['issues'])} issues found:")
+        for issue in lint_report["issues"]:
+            print(Fore.RED + f"  - {issue}")
+    else:
+        print(Fore.GREEN + "✅ No voice‑leading issues detected.")
 
-        # Review
-        review_json = review_realized_score(input_path, call_llm)
-        review_data = json.loads(review_json)
-        with open(review_path, "w") as f:
-            json.dump(
-                {
-                    **generate_metadata(input_path, "review-realization"),
-                    "data": review_data,
-                },
-                f,
-                indent=2,
+    # Skip LLM review if linter found no issues and user didn't force iterations > 0
+    if not lint_report["issues"]:
+        print(Fore.GREEN + "🔍 Linter clean; skipping LLM realization review passes.")
+        realization_versions = []
+    else:
+        # === Multiple review loops for realization ===
+        realization_versions = []
+        last_realized_path = realized_path
+        realization_patch = None
+        for i in range(args.iterations):
+            input_path = (
+                last_realized_path
+                if i == 0
+                else os.path.join(chain_dir, f"realized_{i}.json")
             )
+            review_path = os.path.join(chain_dir, f"review_realization_{i+1}.json")
+            new_realized_path = os.path.join(chain_dir, f"realized_{i+1}.json")
 
-        print(Fore.YELLOW + f"\n🔍 Review {i+1} completed.")
-        print(Fore.GREEN + review_data.get("message", "No review message provided."))
-
-        realization_patch = review_data.get("suggested_patch")
-        if not realization_patch:
-            print(Fore.YELLOW + "No patch suggested; stopping review loop.")
-            break
-
-        # Patch
-        with open(input_path, "r") as f:
-            current_data = json.load(f)["data"]
-        updated = apply_patch(current_data, realization_patch)
-        with open(new_realized_path, "w") as f:
-            json.dump(
-                {
-                    **generate_metadata(args.prompt, f"realize-partimento-pass-{i+1}"),
-                    "data": updated,
-                },
-                f,
-                indent=2,
-            )
-        print(Fore.YELLOW + f"✅ Patch applied: realized_{i+1}.json")
-        realization_versions.append(os.path.basename(new_realized_path))
-        last_realized_path = new_realized_path
-
-        # Export OGG audio for each version
-        midi_path = os.path.join(chain_dir, f"realized_{i+1}.mid")
-        # Export MIDI for this version
-        export_realized_partimento_to_midi(new_realized_path, midi_path)
-        ogg_path = new_realized_path.replace(".json", ".ogg")
-        if os.path.exists(midi_path):
-            try:
-                subprocess.run(
-                    ["timidity", midi_path, "-Ow", "-o", ogg_path], check=True
+            # Review
+            review_json = review_realized_score(input_path, call_llm)
+            review_data = json.loads(review_json)
+            with open(review_path, "w") as f:
+                json.dump(
+                    {
+                        **generate_metadata(input_path, "review-realization"),
+                        "data": review_data,
+                    },
+                    f,
+                    indent=2,
                 )
-                print(Fore.YELLOW + f"🎧 OGG audio saved to {ogg_path}")
-            except FileNotFoundError:
-                print(Fore.YELLOW + "⚠️  Timidity not found. Skipping OGG audio export.")
+
+            print(Fore.YELLOW + f"\n🔍 Review {i+1} completed.")
+            print(
+                Fore.GREEN + review_data.get("message", "No review message provided.")
+            )
+
+            realization_patch = review_data.get("suggested_patch")
+            if not realization_patch:
+                print(Fore.YELLOW + "No patch suggested; stopping review loop.")
+                break
+
+            # Patch
+            with open(input_path, "r") as f:
+                current_data = json.load(f)["data"]
+            updated = apply_patch(current_data, realization_patch)
+            with open(new_realized_path, "w") as f:
+                json.dump(
+                    {
+                        **generate_metadata(
+                            args.prompt, f"realize-partimento-pass-{i+1}"
+                        ),
+                        "data": updated,
+                    },
+                    f,
+                    indent=2,
+                )
+            print(Fore.YELLOW + f"✅ Patch applied: realized_{i+1}.json")
+            realization_versions.append(os.path.basename(new_realized_path))
+            last_realized_path = new_realized_path
+
+            # Export OGG audio for each version
+            midi_path = os.path.join(chain_dir, f"realized_{i+1}.mid")
+            # Export MIDI for this version
+            export_realized_partimento_to_midi(new_realized_path, midi_path)
+            ogg_path = new_realized_path.replace(".json", ".ogg")
+            if os.path.exists(midi_path):
+                try:
+                    subprocess.run(
+                        ["timidity", midi_path, "-Ow", "-o", ogg_path], check=True
+                    )
+                    print(Fore.YELLOW + f"🎧 OGG audio saved to {ogg_path}")
+                except FileNotFoundError:
+                    print(
+                        Fore.YELLOW
+                        + "⚠️  Timidity not found. Skipping OGG audio export."
+                    )
 
     # Export final version
     final_realized = last_realized_path if realization_versions else realized_path
@@ -473,7 +496,7 @@ def handle_chain_partimento_realization(args):
 
 def handle_realize_partimento(args):
     print(Fore.CYAN + f"\n🎼 Realizing partimento from {args.input}...")
-    realized_data = generate.realize_partimento_satb(args.input, call_llm)
+    realized_data = realize.realize_partimento_satb(args.input, call_llm)
     output_json = json.dumps(realized_data, indent=2)
     print(Fore.GREEN + "\n✅ Realized partimento:\n" + Style.RESET_ALL + output_json)
 
@@ -524,7 +547,7 @@ def handle_lead_sheet(args):
     os.makedirs("generated/musicxml", exist_ok=True)
     timestamp = datetime.now().strftime("%Y-%m-%d_%H%M%S")
     args.output = f"generated/musicxml/lead_sheet_{timestamp}.musicxml"
-    generate.generate_jazz_lead_sheet(args.input, args.output)
+    generate_jazz.generate_jazz_lead_sheet(args.input, args.output)
     print(Fore.YELLOW + f"\n💾 MusicXML saved to {args.output}")
 
 
@@ -536,8 +559,6 @@ def handle_review_score(args):
     print(Fore.CYAN + f"\n🔍 Reviewing realized partimento from {args.input}...")
     review_json = review_realized_score(args.input, call_llm)
     review_data = json.loads(review_json)
-
-    from utils.metadata_utils import generate_metadata
 
     metadata = generate_metadata(args.input, "review-partimento")
     output = {**metadata, "data": review_data}
@@ -594,8 +615,6 @@ def handle_review_partimento(args):
     print(Fore.CYAN + f"\n🔍 Reviewing partimento from {args.input}...")
     review_json = review_partimento(args.input, call_llm)
     review_data = json.loads(review_json)
-
-    from utils.metadata_utils import generate_metadata
 
     metadata = generate_metadata(args.input, "review-partimento")
     output = {**metadata, "data": review_data}
@@ -691,7 +710,7 @@ def handle_revise_score(args):
 
 
 def handle_inspect_musicxml(args):
-    from utils.musicxml_tools import print_score_summary
+    from lib.utils.musicxml_utils import print_score_summary
 
     print(Fore.CYAN + f"\n🔍 Inspecting MusicXML file: {args.input}...")
 
@@ -747,21 +766,40 @@ def handle_write_audio(args):
         print(Fore.RED + "❌ Unsupported OS for playback.")
 
 
+# === GENERATE FROM JSON HANDLER ===
+def handle_generate_from_json(args):
+    genre = args.genre
+    if genre not in GENRE_REGISTRY:
+        print(f"❌ Unknown genre '{genre}'. Options: {list(GENRE_REGISTRY)}")
+        return
+
+    adapter = GENRE_REGISTRY[genre]
+    input_data = load_json(args.input)
+
+    realized = adapter.realize(input_data)
+    output_path = adapter.export(realized)
+
+    print(Fore.GREEN + f"\n✅ Generated and exported to {output_path}")
+
+
 # === HANDLER MAP ===
 # Dispatch map for all CLI commands to their corresponding handler functions.
 
 handler_map = {
-    "describe-chain": handle_describe_chain,
+    # Partimento generation and review handlers
     "chain-partimento": handle_chain_partimento_realization,
     "chain-partimento-only": handle_chain_partimento_only,
-    "lead-sheet": handle_lead_sheet,
     "generate-partimento": handle_partimento,
     "export-partimento-to-musicxml": handle_export_partimento_to_musicxml,
     "export-realized-partimento-to-musicxml": handle_export_realized_partimento_to_musicxml,
     "realize-partimento": handle_realize_partimento,
+    "review-partimento": handle_review_partimento,
+    # Jazz lead sheet handlers
+    "lead-sheet": handle_lead_sheet,
+    # Common handlers
+    "describe-chain": handle_describe_chain,
     "inspect-musicxml": handle_inspect_musicxml,
     "review-score": handle_review_score,
-    "review-partimento": handle_review_partimento,
     "revise-score": handle_revise_score,
     "export-audio": handle_write_audio,
 }
