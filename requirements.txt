@@ -89,6 +89,4 @@ uritemplate==4.1.1
 urllib3==2.4.0
 virtualenv==20.31.2
 webcolors==24.11.1
--e git+https://github.com/radcliffetech/yantra-gandharva.git@f3d2b89a1626dc0ece6f03e1e1d3dea387179686#egg=yantra_gandharva
-# Editable install with no version control (yg-cli==0.1.0)
--e /Users/jeffrey/Desktop/Code/Portfolio/yantra-gandharva/apps/cli
+

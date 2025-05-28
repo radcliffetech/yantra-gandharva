@@ -26,7 +26,7 @@ This creates a chain directory and writes:
 Review the SATB realization:
 
 ```bash
-yantra review-score generated/chains/partimento_furno_demo/realized.json --output generated/chains/partimento_furno_demo
+yantra review-realization generated/chains/partimento_furno_demo/realized.json --output generated/chains/partimento_furno_demo
 ```
 
 This writes `review_realization_1.json` into the chain directory and updates metadata.

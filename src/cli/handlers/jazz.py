@@ -1,6 +1,6 @@
 import logging
-import os
 from datetime import datetime
+from pathlib import Path
 
 from colorama import Fore
 
@@ -11,7 +11,7 @@ from genres.jazz.tasks import generate
 
 def handle_lead_sheet(args):
     logger.info(Fore.CYAN + f"\n🎼 Creating MusicXML from {args.input}...")
-    os.makedirs("generated/musicxml", exist_ok=True)
+    Path("generated/musicxml").mkdir(parents=True, exist_ok=True)
     timestamp = datetime.now().strftime("%Y-%m-%d_%H%M%S")
     args.output = f"generated/musicxml/lead_sheet_{timestamp}.musicxml"
     generate.generate_jazz_lead_sheet(args.input, args.output)

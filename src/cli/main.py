@@ -11,6 +11,7 @@ import argparse
 import logging
 
 from colorama import Fore, init
+from rich.logging import RichHandler
 
 logger = logging.getLogger(__name__)
 
@@ -20,6 +21,13 @@ from .handlers import handler_map
 # For realize-figured-bass, import call_llm and realize_figured_bass_from_prompt directly
 
 init(autoreset=True)
+
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(message)s",
+    handlers=[RichHandler(rich_tracebacks=True)],
+)
 
 
 def main():
