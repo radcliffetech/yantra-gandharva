@@ -12,3 +12,5 @@ __pycache__/
 sandbox/
 tmp/
 generated/
+
+serviceAccountKey.json

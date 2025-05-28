@@ -1,3 +1,10 @@
+def register_push_chain(subparsers):
+    parser = subparsers.add_parser(
+        "push-chain", help="Upload a realization chain folder to Firebase"
+    )
+    parser.add_argument("input", help="Path to a chain folder containing metadata.json")
+
+
 def register_write_audio(subparsers):
     parser = subparsers.add_parser(
         "export-audio", help="Conver MIDI file to ogg using timidity"
@@ -145,3 +152,4 @@ def register_commands(subparsers):
     register_review_partimento(subparsers)
     register_write_audio(subparsers)
     register_lead_sheet(subparsers)
+    register_push_chain(subparsers)

@@ -1,13 +1,9 @@
 import json
 
-from dotenv import load_dotenv
-
 from ..prompts import (
     JAZZ_LEAD_SHEET_SYSTEM_PROMPT,
     JAZZ_LEAD_SHEET_USER_PROMPT_TEMPLATE,
 )
-
-load_dotenv()
 
 
 def generate_jazz_lead_sheet(prompt: str, call_llm) -> dict:

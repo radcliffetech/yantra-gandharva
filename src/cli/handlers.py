@@ -19,6 +19,7 @@ from genres.partimento.tasks.export import (
 from genres.partimento.tasks.realize import realize_partimento_satb
 from genres.partimento.tasks.review import review_partimento, review_realized_score
 from lib.analysis.linting import lint_satb
+from lib.firebase_utils import save_realization_metadata, upload_file_to_storage
 from lib.utils.json_utils import apply_patch, load_json
 from lib.utils.llm_utils import call_llm
 from lib.utils.metadata_utils import generate_metadata
@@ -767,6 +768,7 @@ def handle_write_audio(args):
 
 
 # === GENERATE FROM JSON HANDLER ===
+# === GENERATE FROM JSON HANDLER ===
 def handle_generate_from_json(args):
     genre = args.genre
     if genre not in GENRE_REGISTRY:
@@ -780,6 +782,35 @@ def handle_generate_from_json(args):
     output_path = adapter.export(realized)
 
     print(Fore.GREEN + f"\n✅ Generated and exported to {output_path}")
+
+
+# === PUSH CHAIN HANDLER ===
+def handle_push_chain(args):
+    print(Fore.CYAN + f"\n☁️ Uploading realization chain at {args.input} to Firebase...")
+
+    metadata_path = os.path.join(args.input, "metadata.json")
+    if not os.path.exists(metadata_path):
+        print(Fore.RED + "❌ metadata.json not found in specified directory.")
+        return
+
+    with open(metadata_path, "r") as f:
+        metadata = json.load(f)
+
+    musicxml_path = os.path.join(args.input, metadata["files"]["musicxml"])
+    if not os.path.exists(musicxml_path):
+        print(Fore.RED + f"❌ MusicXML file not found at {musicxml_path}")
+        return
+
+    # Upload MusicXML file
+    print(Fore.YELLOW + f"📤 Uploading MusicXML to Firebase Storage...")
+    remote_filename = os.path.basename(musicxml_path)
+    public_url = upload_file_to_storage(musicxml_path, remote_filename)
+    print(Fore.GREEN + f"✅ Uploaded: {public_url}")
+
+    # Add public_url to metadata and push Firestore doc
+    metadata["exported_musicxml_url"] = public_url
+    doc_id = save_realization_metadata(metadata)
+    print(Fore.GREEN + f"✅ Metadata saved to Firestore. Document ID: {doc_id}")
 
 
 # === HANDLER MAP ===
@@ -802,4 +833,5 @@ handler_map = {
     "review-score": handle_review_score,
     "revise-score": handle_revise_score,
     "export-audio": handle_write_audio,
+    "push-chain": handle_push_chain,
 }

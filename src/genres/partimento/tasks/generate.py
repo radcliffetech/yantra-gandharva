@@ -1,11 +1,6 @@
 import json
 
-from dotenv import load_dotenv
-
 from ..prompts import PARTIMENTO_SYSTEM_PROMPT, get_partimento_user_prompt
-
-load_dotenv()
-
 
 # ---------------------------------------------------------------------------
 # Pre‑built style cards.  Call code can inject one of these by serialising it
