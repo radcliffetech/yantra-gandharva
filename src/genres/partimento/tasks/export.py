@@ -1,6 +1,9 @@
 import json
+import logging
 
 from music21 import clef, key, metadata, meter, note, stream
+
+logger = logging.getLogger(__name__)
 
 
 def export_partimento_to_musicxml(json_path: str, output_path: str):
@@ -45,7 +48,7 @@ def export_partimento_to_musicxml(json_path: str, output_path: str):
 
                 m.append(bass)
             except Exception as e:
-                print(f"⚠️ Skipping invalid bass note '{bass_note_str}': {e}")
+                logger.warning(f"⚠️ Skipping invalid bass note '{bass_note_str}': {e}")
 
         part.append(m)
 
@@ -82,7 +85,7 @@ def export_realized_partimento_to_musicxml(realized_json_path: str, output_path:
                     n.quarterLength = ql
                     m.append(n)
                 except Exception as e:
-                    print(f"⚠️  Skipped note '{note_str}': {e}")
+                    logger.warning(f"⚠️  Skipped note '{note_str}': {e}")
                     continue
 
             part.append(m)
@@ -122,7 +125,7 @@ def export_realized_partimento_to_midi(realized_json_path: str, output_path: str
                     n.quarterLength = ql
                     m.append(n)
                 except Exception as e:
-                    print(f"⚠️  Skipped note '{note_str}': {e}")
+                    logger.warning(f"⚠️  Skipped note '{note_str}': {e}")
                     continue
 
             part.append(m)

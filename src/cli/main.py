@@ -8,8 +8,11 @@ sys.path.insert(
     0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "src"))
 )
 import argparse
+import logging
 
-from colorama import Fore, Style, init
+from colorama import Fore, init
+
+logger = logging.getLogger(__name__)
 
 from .commands import register_commands
 from .handlers import handler_map
@@ -30,7 +33,7 @@ def main():
     if args.command in handler_map:
         handler_map[args.command](args)
     else:
-        print(Fore.YELLOW + "Unknown or missing command.\n")
+        logger.warning(Fore.YELLOW + "Unknown or missing command.\n")
         parser.print_help()
 
 

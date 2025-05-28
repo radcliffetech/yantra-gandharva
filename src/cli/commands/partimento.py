@@ -1,6 +1,6 @@
 def register_chain_partimento_realization(subparsers):
     parser = subparsers.add_parser(
-        "chain-partimento-realization", help="Generate → Realize → Export a partimento"
+        "chain-realization", help="Generate → Realize → Export a partimento"
     )
     parser.add_argument(
         "prompt", help="Natural language prompt to generate the partimento"
