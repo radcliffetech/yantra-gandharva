@@ -1,5 +1,7 @@
 {
+  "title": "Furno Example Partimento Number 1",
   "key": "C",
-  "bassline": ["C2", "D2", "G2", "C2"],
-  "figures": [["6"], ["5"], ["6"], ["5"]]
+  "bassline": ["C2",  "E2", "F2", "G2", "C3"],
+  "figures": [["5", "3"],  ["6"], [], ["5", "3"], [""]],
+  "style": "Furno"
 }

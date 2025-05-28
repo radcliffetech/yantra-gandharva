@@ -69,19 +69,22 @@ python cli/main.py inspect-musicxml path/to/file.musicxml
 
 ```
 yantra-gandharva/
-├── cli/                  # Command-line interface logic
-├── data/examples/        # Sample prompts and test data
-├── generated/            # LLM outputs and MusicXML realizations
-│   ├── json/
-│   └── musicxml/
-├── src/                  # Core logic
-│   ├── generate/         # Score builders (Baroque, Jazz, etc.)
-│   ├── llm/              # Prompt + LLM interface
-│   └── utils/            # Reusable tools (e.g., MusicXML helpers)
-├── tests/                # Pytest test suite
-├── README.md
-├── requirements.txt
-└── pyproject.toml
+├── src/
+│   ├── cli/
+│   │   ├── main.py              # Entry point for CLI
+│   │   ├── commands/            # CLI argument registration per domain
+│   │   └── handlers/            # CLI action handlers per domain
+│   ├── genres/                  # Domain-specific music logic (e.g., partimento, jazz)
+│   ├── lib/                     # Shared tools and analysis utils
+│   │   ├── analysis/
+│   │   └── utils/
+├── data/examples/               # Sample inputs and outputs
+├── generated/chains/           # Realization chains with metadata and files
+├── public/                      # Static assets (e.g., logo)
+├── tests/                       # Test suite
+├── pyproject.toml               # Python project configuration
+├── requirements.txt             # Python dependency list
+└── README.md
 ```
 
 ---

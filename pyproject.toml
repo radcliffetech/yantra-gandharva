@@ -2,6 +2,27 @@
 name = "yantra-gandharva"
 version = "0.1.0"
 description = "A modular engine for generating and rendering musical scores via LLMs and symbolic music tools"
+readme = "README.md"
+license = { file = "LICENSE" }
+authors = [{ name = "Jeffrey Radcliffe", email = "you@example.com" }]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Topic :: Artistic Software"
+]
+dependencies = [
+    "music21",
+    "colorama",
+    "requests"
+]
+
+[project.optional-dependencies]
+dev = ["pytest", "black", "isort", "rich"]
+
+[project.scripts]
+yantra = "cli.main:main"
 
 [tool.black]
 line-length = 88
@@ -13,6 +34,3 @@ line_length = 88
 
 [tool.setuptools.packages.find]
 where = ["src"]
-
-[project.scripts]
-yantra = "cli.main:main"

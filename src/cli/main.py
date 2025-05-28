@@ -8,8 +8,12 @@ sys.path.insert(
     0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "src"))
 )
 import argparse
+import logging
 
-from colorama import Fore, Style, init
+from colorama import Fore, init
+from rich.logging import RichHandler
+
+logger = logging.getLogger(__name__)
 
 from .commands import register_commands
 from .handlers import handler_map
@@ -17,6 +21,13 @@ from .handlers import handler_map
 # For realize-figured-bass, import call_llm and realize_figured_bass_from_prompt directly
 
 init(autoreset=True)
+
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(message)s",
+    handlers=[RichHandler(rich_tracebacks=True)],
+)
 
 
 def main():
@@ -30,7 +41,7 @@ def main():
     if args.command in handler_map:
         handler_map[args.command](args)
     else:
-        print(Fore.YELLOW + "Unknown or missing command.\n")
+        logger.warning(Fore.YELLOW + "Unknown or missing command.\n")
         parser.print_help()
 
 
