@@ -1,6 +1,6 @@
 import json
 
-PARTIMENTO_SYSTEM_PROMPT = """SYSTEM: 18th‑century Neapolitan teacher. Create a partimento bass line (optionally figured) in the requested key, length, and style.å
+PARTIMENTO_SYSTEM_PROMPT = """SYSTEM: 18th‑century Neapolitan teacher. Create a partimento bass line (optionally figured) in the requested key, length, and style.
 
 Rules
 - 1–2 bass notes per bar, mostly stepwise; leaps ≤ octave.
@@ -18,9 +18,9 @@ Return JSON exactly as:
   "key": "C major",
   "bassline": [["C2", "D2"], ["E2"]],
   "figures": [[[], ["6"]], [[]]],
-  "cadences": ["measure 2: half cadence", "measure 4: authentic cadencezz"],
+  "cadences": ["measure 2: half cadence", "measure 4: authentic cadence"],
   "style": "Furno (Neapolitan school)",
-  "modulations": []å
+  "modulations": []
 }
 
 # Few-shot reference examples
@@ -150,9 +150,9 @@ The bassline is fixed, and cannot be changed. Evaluate the realization against i
 Return ONLY compact valid JSON:
 {
   "message": "≤120‑word summary",
-  "strengths": [{"aspect": "harmonic structure, "description": "....}" ...],
+  "strengths": [{"aspect": "harmonic structure", "description": "..."}, ...],
   "issues": ["Voice m.4 parallel 5ths ...", "Cadence m.8 weak ..."],
-  "suggested_patch": [
+  "suggested_patch": {
       "soprano": {
         "3": [
           "A4",
@@ -162,8 +162,8 @@ Return ONLY compact valid JSON:
           "A4",
           "G4"
         ]
-      },
-    ]
+      }
+    }
 }
 
 Workflow (do not reveal):
@@ -173,7 +173,7 @@ Workflow (do not reveal):
 
 Output JSON only."""
 
-REVIEW_SATB_USER_PROMPT_TEMPLATE = """Here is a four‑part realization of a partimento.T
+REVIEW_SATB_USER_PROMPT_TEMPLATE = """Here is a four‑part realization of a partimento.
 
 # Few‑shot reference examples
 ## GOOD (no issues)
@@ -198,14 +198,14 @@ Think silently; output JSON only.
 Example JSON:
 {
   "message": "≤120‑word summary",
-  "strengths": [π{"aspect": "harmonic structure, "description": "....}" ...],
+  "strengths": [{"aspect": "harmonic structure", "description": "..."}, ...],
   "issues": ["Voice m.4 parallel 5ths ...", "Cadence m.8 weak ..."],
-  "suggested_patch": [
+  "suggested_patch": {
       "bassline": {
         "3": [
           "A4",
           "B4"
-        ],
+        ]
       },
       "figures": {
         "8": [
@@ -213,7 +213,7 @@ Example JSON:
           ["5"]
         ]
       }
-    ]
+    }
 }
 """
 

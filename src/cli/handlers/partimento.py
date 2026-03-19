@@ -3,7 +3,7 @@ import logging
 import subprocess
 import uuid
 from argparse import Namespace
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 from colorama import Fore, Style
@@ -107,8 +107,12 @@ def handle_chain_partimento_only(args: Namespace) -> None:
             break
 
         # Load current version and apply patch
-        with open(current_json_path, "r") as f:
-            working_data = json.load(f)
+        try:
+            with open(current_json_path, "r") as f:
+                working_data = json.load(f)
+        except (OSError, json.JSONDecodeError) as e:
+            logger.error(Fore.RED + f"❌ Failed to read {current_json_path}: {e}" + Style.RESET_ALL)
+            return
         updated = apply_patch(working_data["data"], patch)
 
         # Write updated file with versioned filename
@@ -146,7 +150,7 @@ def handle_chain_partimento_only(args: Namespace) -> None:
         chain_dir,
         {
             "id": str(uuid.uuid4()),
-            "created_at": datetime.utcnow().isoformat(timespec="seconds") + "Z",
+            "created_at": datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z"),
             "mode": "generate-and-review-partimento",
             "prompt": args.prompt,
             "files": files_dict,
@@ -232,8 +236,12 @@ def handle_chain_partimento_realization(args: Namespace) -> None:
             break
 
         # Load and apply patch
-        with open(current_partimento_path, "r") as f:
-            current_data = json.load(f)
+        try:
+            with open(current_partimento_path, "r") as f:
+                current_data = json.load(f)
+        except (OSError, json.JSONDecodeError) as e:
+            logger.error(Fore.RED + f"❌ Failed to read {current_partimento_path}: {e}" + Style.RESET_ALL)
+            return
         patched = apply_patch(current_data["data"], partimento_patch)
 
         # Write patched version (use versioned filename)
@@ -349,8 +357,12 @@ def handle_chain_partimento_realization(args: Namespace) -> None:
                 break
 
             # Patch realization
-            with open(input_path, "r") as f:
-                current_data = json.load(f)["data"]
+            try:
+                with open(input_path, "r") as f:
+                    current_data = json.load(f)["data"]
+            except (OSError, json.JSONDecodeError) as e:
+                logger.error(Fore.RED + f"❌ Failed to read {input_path}: {e}" + Style.RESET_ALL)
+                return
             updated = apply_patch(current_data, realization_patch)
             write_chain_json(
                 updated,
@@ -415,7 +427,7 @@ def handle_chain_partimento_realization(args: Namespace) -> None:
         chain_dir,
         {
             "id": str(uuid.uuid4()),
-            "created_at": datetime.utcnow().isoformat(timespec="seconds") + "Z",
+            "created_at": datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z"),
             "mode": "chain-partimento",
             "prompt": args.prompt,
             "files": files_dict,
@@ -530,8 +542,12 @@ def handle_realize_partimento(args: Namespace) -> None:
 
     # Load partimento.json as full metadata-wrapped source and extract values
     if Path(args.input).exists():
-        with open(args.input, "r") as f:
-            source_data = json.load(f)
+        try:
+            with open(args.input, "r") as f:
+                source_data = json.load(f)
+        except (OSError, json.JSONDecodeError) as e:
+            logger.error(Fore.RED + f"❌ Failed to read {args.input}: {e}" + Style.RESET_ALL)
+            return
         source = args.input
         prompt = source_data.get("user_prompt") or source_data.get("prompt")
     else:
@@ -554,8 +570,12 @@ def handle_realize_partimento(args: Namespace) -> None:
         partimento_chain_path = chain_dir / "partimento_01.json"
         if not partimento_chain_path.exists():
             if Path(args.input).exists():
-                with open(args.input, "r") as f:
-                    part_data = json.load(f)
+                try:
+                    with open(args.input, "r") as f:
+                        part_data = json.load(f)
+                except (OSError, json.JSONDecodeError) as e:
+                    logger.error(Fore.RED + f"❌ Failed to read {args.input}: {e}" + Style.RESET_ALL)
+                    return
                 # If input is a chain-wrapped file, extract "data" if present
                 data_to_write = part_data.get("data", part_data)
                 write_chain_json(
@@ -570,7 +590,7 @@ def handle_realize_partimento(args: Namespace) -> None:
         partimento_basename = partimento_chain_path.name
         meta = {
             "id": str(uuid.uuid4()),
-            "created_at": datetime.utcnow().isoformat(timespec="seconds") + "Z",
+            "created_at": datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z"),
             "mode": "realize-partimento",
             "source_file": args.input,
             "realized_file": realized_basename,
@@ -682,7 +702,7 @@ def handle_review_realization(args: Namespace) -> None:
     if is_chain:
         meta = {
             "id": str(uuid.uuid4()),
-            "created_at": datetime.utcnow().isoformat(timespec="seconds") + "Z",
+            "created_at": datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z"),
             "mode": "review-score",
             "source_file": args.input,
             "review_file": Path(output_path).name,
@@ -737,7 +757,7 @@ def handle_review_partimento(args: Namespace) -> None:
     if is_chain:
         meta = {
             "id": str(uuid.uuid4()),
-            "created_at": datetime.utcnow().isoformat(timespec="seconds") + "Z",
+            "created_at": datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z"),
             "mode": "review-partimento",
             "source_file": args.input,
             "review_file": Path(output_path).name,
@@ -750,11 +770,19 @@ def handle_revise_realization(args: Namespace) -> None:
     """Apply a patch from a review file to a realization JSON, save as a new chain version or flat file."""
     log_step(f"\n🔧 Revising realization based on patch...")
 
-    with open(args.input, "r") as f:
-        original = json.load(f)
+    try:
+        with open(args.input, "r") as f:
+            original = json.load(f)
+    except (OSError, json.JSONDecodeError) as e:
+        logger.error(Fore.RED + f"❌ Failed to read input {args.input}: {e}" + Style.RESET_ALL)
+        return
 
-    with open(args.patch, "r") as f:
-        review = json.load(f)
+    try:
+        with open(args.patch, "r") as f:
+            review = json.load(f)
+    except (OSError, json.JSONDecodeError) as e:
+        logger.error(Fore.RED + f"❌ Failed to read patch {args.patch}: {e}" + Style.RESET_ALL)
+        return
 
     patch = review.get("data", {}).get("suggested_patch")
     if not patch:
@@ -784,15 +812,23 @@ def handle_revise_realization(args: Namespace) -> None:
     log_step(f"\n✅ Revised realization saved to {output_path}", color=Fore.YELLOW)
 
 
-def handler_revise_partimento(args: Namespace) -> None:
+def handle_revise_partimento(args: Namespace) -> None:
     """Apply a patch from a review file to a partimento JSON, save as a new chain version or flat file."""
     log_step(f"\n🔧 Revising partimento based on patch...")
 
-    with open(args.input, "r") as f:
-        original = json.load(f)
+    try:
+        with open(args.input, "r") as f:
+            original = json.load(f)
+    except (OSError, json.JSONDecodeError) as e:
+        logger.error(Fore.RED + f"❌ Failed to read input {args.input}: {e}" + Style.RESET_ALL)
+        return
 
-    with open(args.patch, "r") as f:
-        review = json.load(f)
+    try:
+        with open(args.patch, "r") as f:
+            review = json.load(f)
+    except (OSError, json.JSONDecodeError) as e:
+        logger.error(Fore.RED + f"❌ Failed to read patch {args.patch}: {e}" + Style.RESET_ALL)
+        return
 
     patch = review.get("data", {}).get("suggested_patch")
     if not patch:
@@ -834,7 +870,7 @@ handler_map = {
     "review-realization": handle_review_realization,
     # revise
     "revise-realization": handle_revise_realization,
-    "revise-partimento": handler_revise_partimento,
+    "revise-partimento": handle_revise_partimento,
     # export
     "export-partimento": handle_export_partimento,
     "export-realization": handle_export_realization,

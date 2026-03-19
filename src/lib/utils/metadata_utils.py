@@ -1,11 +1,11 @@
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 
 
 def generate_metadata(prompt: str, mode: str, system_prompt: str = None) -> dict:
     return {
         "id": str(uuid.uuid4()),
-        "created_at": datetime.utcnow().isoformat() + "Z",
+        "created_at": datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z"),
         "mode": mode,
         "source": "prompt",
         "user_prompt": prompt,

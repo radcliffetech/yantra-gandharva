@@ -48,4 +48,7 @@ def generate_partimento(prompt: str, call_llm) -> dict:
         prompt, style_card=STYLE_CARDS["J. S. Bach"]
     )
     response = call_llm(system_prompt, user_prompt)
-    return json.loads(response)
+    try:
+        return json.loads(response)
+    except json.JSONDecodeError as e:
+        raise ValueError(f"LLM returned invalid JSON for partimento generation: {e}")
