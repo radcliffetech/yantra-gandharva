@@ -1,38 +1,56 @@
 import logging
 import os
-from datetime import datetime
+from datetime import datetime, timezone
 
-import firebase_admin
 from colorama import Fore
 from dotenv import load_dotenv
 
 logger = logging.getLogger(__name__)
-
-from firebase_admin import credentials, firestore, storage
 
 load_dotenv()
 
 COLLECTION_ID = "realizations_v1"
 STORAGE_BUCKET = os.getenv("FIREBASE_STORAGE_BUCKET")
 
-if not STORAGE_BUCKET:
-    raise ValueError("FIREBASE_STORAGE_BUCKET environment variable is not set.")
+_firebase_available = False
+db = None
+bucket = None
 
-_service_key_path = os.path.join(
-    os.path.dirname(__file__), "../../serviceAccountKey.json"
-)
+if STORAGE_BUCKET:
+    try:
+        import firebase_admin
+        from firebase_admin import credentials, firestore, storage
+
+        _service_key_path = os.path.join(
+            os.path.dirname(__file__), "../../serviceAccountKey.json"
+        )
+
+        if not firebase_admin._apps:
+            cred = credentials.Certificate(_service_key_path)
+            firebase_admin.initialize_app(cred, {"storageBucket": STORAGE_BUCKET})
+
+        db = firestore.client()
+        bucket = storage.bucket()
+        _firebase_available = True
+    except Exception as e:
+        logger.warning(f"Firebase not available: {e}")
+else:
+    logger.debug(
+        "FIREBASE_STORAGE_BUCKET not set; Firebase features disabled."
+    )
 
 
-if not firebase_admin._apps:
-    cred = credentials.Certificate(_service_key_path)
-    firebase_admin.initialize_app(cred, {"storageBucket": STORAGE_BUCKET})
-
-db = firestore.client()
-bucket = storage.bucket()
+def _require_firebase():
+    if not _firebase_available:
+        raise RuntimeError(
+            "Firebase is not configured. Set FIREBASE_STORAGE_BUCKET and "
+            "provide a serviceAccountKey.json to use Firebase features."
+        )
 
 
 # Upload a file to Cloud Storage and return its public URL
 def upload_file_to_storage(local_path: str, remote_filename: str) -> str:
+    _require_firebase()
     try:
         logger.info(
             Fore.YELLOW
@@ -50,10 +68,11 @@ def upload_file_to_storage(local_path: str, remote_filename: str) -> str:
 
 # Save realization metadata to Firestore
 def save_realization_metadata(realization_data: dict) -> str:
+    _require_firebase()
     try:
         logger.info(Fore.YELLOW + "📝 Saving realization metadata to Firestore...")
         doc_ref = db.collection(COLLECTION_ID).document()
-        realization_data["created_at"] = datetime.utcnow().isoformat()
+        realization_data["created_at"] = datetime.now(timezone.utc).isoformat()
         doc_ref.set(realization_data)
         logger.info(Fore.GREEN + f"✅ Metadata saved. Document ID: {doc_ref.id}")
         return doc_ref.id
@@ -64,6 +83,7 @@ def save_realization_metadata(realization_data: dict) -> str:
 
 # Fetch all realizations from Firestore
 def fetch_all_realizations() -> list[dict]:
+    _require_firebase()
     try:
         logger.info(Fore.YELLOW + "📥 Fetching all realizations from Firestore...")
         docs = db.collection(COLLECTION_ID).stream()

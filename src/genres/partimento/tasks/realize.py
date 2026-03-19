@@ -10,4 +10,7 @@ from ..prompts import PARTIMENTO_REALIZE_SATB_SYSTEM_PROMPT
 def realize_partimento_satb(json_data: str, call_llm) -> dict:
     user_prompt = "Realize this object:\n\n" + json.dumps(json_data, indent=2)
     response = call_llm(PARTIMENTO_REALIZE_SATB_SYSTEM_PROMPT, user_prompt)
-    return json.loads(response)
+    try:
+        return json.loads(response)
+    except json.JSONDecodeError as e:
+        raise ValueError(f"LLM returned invalid JSON for SATB realization: {e}")

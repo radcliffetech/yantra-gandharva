@@ -1,13 +1,6 @@
-import os
-import sys
+import argparse
 
 import argcomplete
-
-# Ensure src/ is in sys.path for imports
-sys.path.insert(
-    0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "src"))
-)
-import argparse
 import logging
 
 from colorama import Fore, init

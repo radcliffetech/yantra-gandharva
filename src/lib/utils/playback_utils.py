@@ -1,6 +1,9 @@
+import logging
 import os
 import platform
 import subprocess
+
+logger = logging.getLogger(__name__)
 
 
 def open_file_if_possible(path):
@@ -13,5 +16,5 @@ def open_file_if_possible(path):
             os.startfile(path)
         elif platform.system() == "Linux":
             subprocess.run(["xdg-open", path])
-    except Exception:
-        pass
+    except Exception as e:
+        logger.warning(f"Could not open {path}: {e}")

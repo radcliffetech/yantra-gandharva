@@ -51,7 +51,7 @@ def write_chain_json(data, output_path, mode, source_path=None, prompt=None):
     """Write a JSON file with standard metadata + data block."""
     payload = {
         "id": str(uuid.uuid4()),
-        "created_at": datetime.now().isoformat() + "Z",
+        "created_at": datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z"),
         "mode": mode,
         "source": source_path or "unknown",
         "user_prompt": prompt or None,
