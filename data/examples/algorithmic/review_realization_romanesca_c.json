@@ -1,0 +1,21 @@
+{
+  "message": "Found 1 voice-leading issue(s). Doubled leading tone (B) at m7",
+  "strengths": [
+    {
+      "aspect": "voice independence",
+      "description": "No voice crossing detected"
+    },
+    {
+      "aspect": "voice leading",
+      "description": "No parallel 5ths or 8ves detected"
+    },
+    {
+      "aspect": "voice ranges",
+      "description": "All voices within standard ranges"
+    }
+  ],
+  "issues": [
+    "Doubled leading tone (B) at m7"
+  ],
+  "suggested_patch": {}
+}
