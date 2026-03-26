@@ -18,8 +18,6 @@ logger = logging.getLogger(__name__)
 from .commands import register_commands
 from .handlers import handler_map
 
-# For realize-figured-bass, import call_llm and realize_figured_bass_from_prompt directly
-
 init(autoreset=True)
 
 

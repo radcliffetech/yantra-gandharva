@@ -15,6 +15,8 @@
 - [x] MusicXML inspection and summarization via CLI
 - [x] CLI command for chaining prompt → JSON → MusicXML in one go
 - [x] Export to MIDI
+- [x] Pluggable engine system (LLM vs algorithmic/rule-based, `--engine` flag)
+- [x] Offline algorithmic generation using Galant schemata and music21
 - [ ] Partial score playback preview (e.g. bassline only)
 - [ ] Score version comparison tool (original vs patched JSON)
 
@@ -24,10 +26,11 @@
 
 ### Jazz
 - [x] Jazz lead sheet generation from prompt
+- [x] Complex forms (AABA rhythm changes, 16-bar standard, ii-V-I patterns)
+- [x] Algorithmic template-based jazz generation with transposition
 - [ ] Swing rhythm annotations
 - [ ] Basic piano comping pattern output
 - [ ] Lyrics
-- [ ] Complex forms (AABA, rhythm changes)
 - [ ] MIDI voicings with slash notation
 
 ### Baroque / Classical
@@ -50,7 +53,9 @@
 ## 🧠 Language + Semantics
 
 - [x] Pluggable LLM system with mockable `call_llm` function
+- [x] Pluggable engine abstraction (LLM and algorithmic engines via Protocol)
 - [x] Score review: have the LLM critique generated MusicXML
+- [x] Rule-based score review (voice crossing, parallel 5ths/8ves, spacing, ranges)
 - [x] Suggested patch generation and auto-application
 - [x] Critique self-play: prompt → review → revise → re-review
 - [ ] Style transfer in prompts (e.g. realize like J.S. Bach)
