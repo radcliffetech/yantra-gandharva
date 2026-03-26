@@ -31,10 +31,26 @@ def transpose_chords(chords, from_key_str, to_key_str):
 
 
 def transpose_melody(melody, from_key_str, to_key_str):
-    """Transpose a list of pitch strings from one key to another."""
-    from_tonic = pitch.Pitch(from_key_str)
-    to_tonic = pitch.Pitch(to_key_str)
-    trans = interval.Interval(noteStart=from_tonic, noteEnd=to_tonic)
+    """Transpose a list of pitch strings from one key to another.
+
+    Uses the nearest transposition interval (up or down) to keep
+    the melody in a similar octave range as the original.
+    """
+    from_tonic = pitch.Pitch(from_key_str + "4")
+    to_tonic = pitch.Pitch(to_key_str + "4")
+
+    # Choose the smaller of the two possible intervals (up vs down)
+    trans_up = interval.Interval(noteStart=from_tonic, noteEnd=to_tonic)
+    if abs(trans_up.semitones) > 6:
+        # Use the complementary interval in the other direction
+        if trans_up.semitones > 0:
+            to_tonic_low = pitch.Pitch(to_key_str + "3")
+            trans = interval.Interval(noteStart=from_tonic, noteEnd=to_tonic_low)
+        else:
+            to_tonic_high = pitch.Pitch(to_key_str + "5")
+            trans = interval.Interval(noteStart=from_tonic, noteEnd=to_tonic_high)
+    else:
+        trans = trans_up
 
     result = []
     for note_str in melody:

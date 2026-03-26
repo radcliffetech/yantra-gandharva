@@ -22,6 +22,9 @@ from music21 import interval, key, pitch
 def transpose_pattern(bass_notes, from_key, to_key):
     """Transpose a list of note-name strings from one key to another.
 
+    Uses scale-degree mapping so that patterns respect the target key's
+    mode (e.g. C major → D minor uses D minor scale, not D major).
+
     Args:
         bass_notes: list of note names without octave, e.g. ["C", "D", "E"]
         from_key: key.Key to transpose from (reference key)
@@ -30,15 +33,37 @@ def transpose_pattern(bass_notes, from_key, to_key):
     Returns:
         list of transposed note name strings
     """
+    # Build scale-degree lookup for the source key
+    from_scale = from_key.getScale()
+    from_pitches = [p.name for p in from_scale.getPitches(
+        from_key.tonic.name + "2", from_key.tonic.name + "3"
+    )]
+
+    to_scale = to_key.getScale()
+    to_pitches = [p.name for p in to_scale.getPitches(
+        to_key.tonic.name + "2", to_key.tonic.name + "3"
+    )]
+
+    # Map source scale degrees to target scale degrees
+    degree_map = {}
+    for i in range(min(len(from_pitches), len(to_pitches))):
+        degree_map[from_pitches[i]] = to_pitches[i]
+
+    # For chromatic notes not in the source scale, fall back to interval transposition
     trans_interval = interval.Interval(
         noteStart=pitch.Pitch(from_key.tonic.name),
         noteEnd=pitch.Pitch(to_key.tonic.name),
     )
+
     result = []
     for n in bass_notes:
-        p = pitch.Pitch(n)
-        p = p.transpose(trans_interval)
-        result.append(p.name)
+        if n in degree_map:
+            result.append(degree_map[n])
+        else:
+            # Chromatic note — use interval transposition
+            p = pitch.Pitch(n)
+            p = p.transpose(trans_interval)
+            result.append(p.name)
     return result
 
 

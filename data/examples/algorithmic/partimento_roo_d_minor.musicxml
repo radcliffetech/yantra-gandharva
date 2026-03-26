@@ -19,12 +19,12 @@
     </scaling>
   </defaults>
   <part-list>
-    <score-part id="P5669846df24606d76231fb0715d373d6">
+    <score-part id="Pc8d51b864e8d0d8d8befee31cf032738">
       <part-name />
     </score-part>
   </part-list>
   <!--=========================== Part 1 ===========================-->
-  <part id="P5669846df24606d76231fb0715d373d6">
+  <part id="Pc8d51b864e8d0d8d8befee31cf032738">
     <!--========================= Measure 1 ==========================-->
     <measure implicit="no" number="1">
       <attributes>
@@ -59,36 +59,6 @@
     <measure implicit="no" number="2">
       <note>
         <pitch>
-          <step>A</step>
-          <octave>2</octave>
-        </pitch>
-        <duration>40320</duration>
-        <type>whole</type>
-        <lyric name="1" number="1">
-          <syllabic>single</syllabic>
-          <text>5 3</text>
-        </lyric>
-      </note>
-    </measure>
-    <!--========================= Measure 3 ==========================-->
-    <measure implicit="no" number="3">
-      <note>
-        <pitch>
-          <step>D</step>
-          <octave>3</octave>
-        </pitch>
-        <duration>40320</duration>
-        <type>whole</type>
-        <lyric name="1" number="1">
-          <syllabic>single</syllabic>
-          <text>5 3</text>
-        </lyric>
-      </note>
-    </measure>
-    <!--========================= Measure 4 ==========================-->
-    <measure implicit="no" number="4">
-      <note>
-        <pitch>
           <step>E</step>
           <octave>2</octave>
         </pitch>
@@ -100,25 +70,23 @@
         </lyric>
       </note>
     </measure>
-    <!--========================= Measure 5 ==========================-->
-    <measure implicit="no" number="5">
+    <!--========================= Measure 3 ==========================-->
+    <measure implicit="no" number="3">
       <note>
         <pitch>
           <step>F</step>
-          <alter>1</alter>
           <octave>2</octave>
         </pitch>
         <duration>40320</duration>
         <type>whole</type>
-        <accidental>sharp</accidental>
         <lyric name="1" number="1">
           <syllabic>single</syllabic>
           <text>6</text>
         </lyric>
       </note>
     </measure>
-    <!--========================= Measure 6 ==========================-->
-    <measure implicit="no" number="6">
+    <!--========================= Measure 4 ==========================-->
+    <measure implicit="no" number="4">
       <note>
         <pitch>
           <step>G</step>
@@ -132,8 +100,8 @@
         </lyric>
       </note>
     </measure>
-    <!--========================= Measure 7 ==========================-->
-    <measure implicit="no" number="7">
+    <!--========================= Measure 5 ==========================-->
+    <measure implicit="no" number="5">
       <note>
         <pitch>
           <step>A</step>
@@ -147,12 +115,29 @@
         </lyric>
       </note>
     </measure>
-    <!--========================= Measure 8 ==========================-->
-    <measure implicit="no" number="8">
+    <!--========================= Measure 6 ==========================-->
+    <measure implicit="no" number="6">
       <note>
         <pitch>
           <step>B</step>
+          <alter>-1</alter>
           <octave>2</octave>
+        </pitch>
+        <duration>40320</duration>
+        <type>whole</type>
+        <accidental>flat</accidental>
+        <lyric name="1" number="1">
+          <syllabic>single</syllabic>
+          <text>6</text>
+        </lyric>
+      </note>
+    </measure>
+    <!--========================= Measure 7 ==========================-->
+    <measure implicit="no" number="7">
+      <note>
+        <pitch>
+          <step>C</step>
+          <octave>3</octave>
         </pitch>
         <duration>40320</duration>
         <type>whole</type>
@@ -162,20 +147,33 @@
         </lyric>
       </note>
     </measure>
-    <!--========================= Measure 9 ==========================-->
-    <measure implicit="no" number="9">
+    <!--========================= Measure 8 ==========================-->
+    <measure implicit="no" number="8">
       <note>
         <pitch>
-          <step>C</step>
-          <alter>1</alter>
+          <step>D</step>
           <octave>3</octave>
         </pitch>
         <duration>40320</duration>
         <type>whole</type>
-        <accidental>sharp</accidental>
         <lyric name="1" number="1">
           <syllabic>single</syllabic>
-          <text>6</text>
+          <text>5 3</text>
+        </lyric>
+      </note>
+    </measure>
+    <!--========================= Measure 9 ==========================-->
+    <measure implicit="no" number="9">
+      <note>
+        <pitch>
+          <step>D</step>
+          <octave>3</octave>
+        </pitch>
+        <duration>40320</duration>
+        <type>whole</type>
+        <lyric name="1" number="1">
+          <syllabic>single</syllabic>
+          <text>5 3</text>
         </lyric>
       </note>
     </measure>

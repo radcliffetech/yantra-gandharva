@@ -119,9 +119,9 @@ def _plan_patterns(requested_schemata, target_bars, cadence_type):
         attempts += 1
 
     # Add midpoint cadence for longer pieces
-    if target_bars >= 12 and bars_used >= 4:
-        # Insert a half cadence roughly in the middle
-        mid_point = len(sequence) // 2
+    if target_bars >= 12 and len(sequence) >= 2:
+        # Insert a half cadence roughly in the middle (but never at position 0)
+        mid_point = max(1, len(sequence) // 2)
         sequence.insert(mid_point, "cadence_half")
 
     # Always end with cadence

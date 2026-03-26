@@ -19,21 +19,21 @@
     </scaling>
   </defaults>
   <part-list>
-    <score-part id="Pc3a0748e20f422c25524acafb1b09c50">
+    <score-part id="Pcf82b89779c2378e5c962d788677d191">
       <part-name>Soprano</part-name>
     </score-part>
-    <score-part id="P1849223a1f097a1f1b461eb0999da8a4">
+    <score-part id="Pa629f5a285b6175e61f67975c15a3441">
       <part-name>Alto</part-name>
     </score-part>
-    <score-part id="Pfe51fbe3d82999553303e86a36f41591">
+    <score-part id="Pcc8ddaaa8a0ef057ae32a08cd42c6915">
       <part-name>Tenor</part-name>
     </score-part>
-    <score-part id="Pfb74d64dbcdb41b4793e928abaeef56e">
+    <score-part id="P5885b5dfa8c3bed86a034b8fa96e1fbf">
       <part-name>Bass</part-name>
     </score-part>
   </part-list>
   <!--=========================== Part 1 ===========================-->
-  <part id="Pc3a0748e20f422c25524acafb1b09c50">
+  <part id="Pcf82b89779c2378e5c962d788677d191">
     <!--========================= Measure 1 ==========================-->
     <measure implicit="no" number="1">
       <attributes>
@@ -135,7 +135,7 @@
     </measure>
   </part>
   <!--=========================== Part 2 ===========================-->
-  <part id="P1849223a1f097a1f1b461eb0999da8a4">
+  <part id="Pa629f5a285b6175e61f67975c15a3441">
     <!--========================= Measure 1 ==========================-->
     <measure implicit="no" number="1">
       <attributes>
@@ -237,7 +237,7 @@
     </measure>
   </part>
   <!--=========================== Part 3 ===========================-->
-  <part id="Pfe51fbe3d82999553303e86a36f41591">
+  <part id="Pcc8ddaaa8a0ef057ae32a08cd42c6915">
     <!--========================= Measure 1 ==========================-->
     <measure implicit="no" number="1">
       <attributes>
@@ -339,7 +339,7 @@
     </measure>
   </part>
   <!--=========================== Part 4 ===========================-->
-  <part id="Pfb74d64dbcdb41b4793e928abaeef56e">
+  <part id="P5885b5dfa8c3bed86a034b8fa96e1fbf">
     <!--========================= Measure 1 ==========================-->
     <measure implicit="no" number="1">
       <attributes>
