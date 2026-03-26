@@ -10,7 +10,30 @@ You need a JSON file representing a partimento prompt. A sample is available at:
 data/examples/furno_example.json
 ```
 
-## ⚙️ Step 1: Realize the Initial Partimento
+## Engine Modes
+
+All commands that generate, realize, or review music accept an `--engine` flag:
+
+- `--engine llm` (default) — uses OpenAI GPT-4o. Requires `OPENAI_API_KEY`.
+- `--engine algorithmic` — uses rule-based music theory. Fully offline, no API key needed.
+
+You can add `--engine algorithmic` to any command below to run without an LLM.
+
+## Full Chain (One Command)
+
+Generate, review, realize, and export in one step:
+
+```bash
+# LLM mode:
+yantra chain-realization "8 bars in C major, Furno style"
+
+# Algorithmic mode (no API key):
+yantra chain-realization "8 bars in D minor, Romanesca then Prinner" --engine algorithmic
+```
+
+## Step-by-Step Workflow
+
+### Step 1: Realize the Initial Partimento
 
 ```bash
 yantra realize-partimento data/examples/furno_example.json --output generated/chains/partimento_furno_demo

@@ -1,0 +1,18 @@
+{
+  "message": "Partimento is well-constructed with no obvious issues.",
+  "strengths": [
+    {
+      "aspect": "melodic contour",
+      "description": "Good stepwise motion in the bass"
+    },
+    {
+      "aspect": "cadential structure",
+      "description": "1 cadence(s) marked"
+    },
+    {
+      "aspect": "overall quality",
+      "description": "No compositional issues detected"
+    }
+  ],
+  "issues": []
+}

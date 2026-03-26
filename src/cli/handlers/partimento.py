@@ -9,16 +9,14 @@ from pathlib import Path
 from colorama import Fore, Style
 from rich.logging import RichHandler
 
-from genres.partimento.tasks import generate as generate_partimento
-from genres.partimento.tasks import realize
+from engines import EngineType
+from genres.partimento.engines import get_partimento_engine
 from genres.partimento.tasks.export import (
     export_partimento_to_midi,
     export_partimento_to_musicxml,
     export_realized_partimento_to_midi,
     export_realized_partimento_to_musicxml,
 )
-from genres.partimento.tasks.realize import realize_partimento_satb
-from genres.partimento.tasks.review import review_partimento, review_realized_score
 from lib.analysis.linting import lint_satb
 from lib.utils.chain_utils import (
     build_meta,
@@ -31,9 +29,14 @@ from lib.utils.chain_utils import (
     write_metadata,
 )
 from lib.utils.json_utils import apply_patch
-from lib.utils.llm_utils import call_llm
 from lib.utils.music_utils import export_ogg_from_midi
 from lib.utils.playback_utils import open_file_if_possible
+
+
+def _engine_from_args(args):
+    """Resolve the partimento engine from CLI args."""
+    engine_type = EngineType(getattr(args, "engine", "llm"))
+    return get_partimento_engine(engine_type)
 
 logging.basicConfig(
     level=logging.INFO,
@@ -60,7 +63,8 @@ def handle_chain_partimento_only(args: Namespace) -> None:
     chain_dir.mkdir(parents=True, exist_ok=True)
 
     # Step 1: Generate partimento
-    partimento_data = generate_partimento.generate_partimento(args.prompt, call_llm)
+    engine = _engine_from_args(args)
+    partimento_data = engine.generate_partimento(args.prompt)
     base_json_path = chain_dir / "partimento_01.json"
     write_chain_json(
         partimento_data,
@@ -78,7 +82,7 @@ def handle_chain_partimento_only(args: Namespace) -> None:
     review_versions = []
     for i in range(iterations):
         log_step(f"\n🔍 Reviewing partimento (pass {i+1})...")
-        review_json = review_partimento(current_json_path, call_llm)
+        review_json = engine.review_partimento(current_json_path)
         review_data = json.loads(review_json)
 
         # Use helper for review file name
@@ -190,8 +194,9 @@ def handle_chain_partimento_realization(args: Namespace) -> None:
     chain_dir.mkdir(parents=True, exist_ok=True)
 
     # Step 2: Generate partimento (use versioned filename)
+    engine = _engine_from_args(args)
     partimento_json_path = get_next_versioned_filename(str(chain_dir), "partimento")
-    partimento_data = generate_partimento.generate_partimento(args.prompt, call_llm)
+    partimento_data = engine.generate_partimento(args.prompt)
     write_chain_json(
         partimento_data,
         partimento_json_path,
@@ -209,7 +214,7 @@ def handle_chain_partimento_realization(args: Namespace) -> None:
     partimento_patch = None
     for i in range(args.iterations):
         log_step(f"\n🔍 Reviewing partimento (pass {i+1})...")
-        review_json = review_partimento(current_partimento_path, call_llm)
+        review_json = engine.review_partimento(current_partimento_path)
         review_data = json.loads(review_json)
         review_json_path = get_next_versioned_filename(
             str(chain_dir), "review_partimento"
@@ -278,7 +283,7 @@ def handle_chain_partimento_realization(args: Namespace) -> None:
 
     # Step 4: Realize partimento (SATB)
     log_step(f"\n🔗 3. Realizing partimento...")
-    realization = realize_partimento_satb(partimento_data, call_llm)
+    realization = engine.realize_partimento_satb(partimento_data)
     realized_path = get_next_versioned_filename(chain_dir, "realized")
     write_chain_json(
         realization,
@@ -331,7 +336,7 @@ def handle_chain_partimento_realization(args: Namespace) -> None:
 
             # Review
             log_step(f"\n🔍 Reviewing realization (pass {i+1})...")
-            review_json = review_realized_score(input_path, call_llm)
+            review_json = engine.review_realized_score(input_path)
             review_data = json.loads(review_json)
             write_chain_json(
                 review_data,
@@ -475,7 +480,8 @@ def handle_chain_partimento_realization(args: Namespace) -> None:
 def handle_generate_partimento(args: Namespace) -> None:
     """Generate a partimento from a prompt, save to chain or flat file, and export MusicXML/MIDI."""
     log_step("\n🎼 Generating partimento bass line from prompt...")
-    partimento_data = generate_partimento.generate_partimento(args.prompt, call_llm)
+    engine = _engine_from_args(args)
+    partimento_data = engine.generate_partimento(args.prompt)
 
     out = resolve_output("partimento", args)
 
@@ -521,7 +527,8 @@ def handle_generate_partimento(args: Namespace) -> None:
 def handle_realize_partimento(args: Namespace) -> None:
     """Realize a partimento as SATB, save to a versioned chain file or flat file, and update metadata."""
     log_step(f"\n🎼 Realizing partimento from {args.input}...")
-    realized_data = realize.realize_partimento_satb(args.input, call_llm)
+    engine = _engine_from_args(args)
+    realized_data = engine.realize_partimento_satb(args.input)
     log_step("\n✅ Realized partimento:", color=Fore.GREEN)
     logger.info(json.dumps(realized_data, indent=2))
 
@@ -660,7 +667,8 @@ def handle_export_realization(args: Namespace) -> None:
 def handle_review_realization(args: Namespace) -> None:
     """Run LLM review of a realized SATB partimento, save review in chain or flat output, and update metadata if in a chain."""
     log_step(f"\n🔍 Reviewing realized partimento from {args.input}...")
-    review_json = review_realized_score(args.input, call_llm)
+    engine = _engine_from_args(args)
+    review_json = engine.review_realized_score(args.input)
     review_data = json.loads(review_json)
 
     # Determine output path: use chain helpers if directory, else timestamped flat file
@@ -714,7 +722,8 @@ def handle_review_realization(args: Namespace) -> None:
 def handle_review_partimento(args: Namespace) -> None:
     """Run LLM review of a partimento (not yet realized), save review in chain or flat output, and update metadata if in a chain."""
     log_step(f"\n🔍 Reviewing partimento from {args.input}...")
-    review_json = review_partimento(args.input, call_llm)
+    engine = _engine_from_args(args)
+    review_json = engine.review_partimento(args.input)
     review_data = json.loads(review_json)
 
     # Determine output path: use chain helpers if directory, else timestamped flat file

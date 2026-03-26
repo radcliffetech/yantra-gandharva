@@ -1,3 +1,17 @@
+ENGINE_ARGS = dict(
+    flags=["--engine"],
+    kwargs=dict(
+        choices=["llm", "algorithmic"],
+        default="llm",
+        help="Engine to use: 'llm' (default) or 'algorithmic' (rule-based, no API key needed)",
+    ),
+)
+
+
+def _add_engine_flag(parser):
+    parser.add_argument(*ENGINE_ARGS["flags"], **ENGINE_ARGS["kwargs"])
+
+
 def register_chain_partimento_realization(subparsers):
     parser = subparsers.add_parser(
         "chain-realization", help="Generate → Realize → Export a partimento"
@@ -11,6 +25,7 @@ def register_chain_partimento_realization(subparsers):
     parser.add_argument(
         "--iterations", type=int, default=1, help="Number of realization review loops"
     )
+    _add_engine_flag(parser)
 
 
 def register_chain_partimento_only(subparsers):
@@ -27,11 +42,12 @@ def register_chain_partimento_only(subparsers):
     parser.add_argument(
         "--iterations", type=int, default=1, help="Number of realization review loops"
     )
+    _add_engine_flag(parser)
 
 
 def register_generate_partimento(subparsers):
     parser = subparsers.add_parser(
-        "generate-partimento", help="Use LLM to generate a partimento bassline"
+        "generate-partimento", help="Generate a partimento bassline"
     )
     parser.add_argument(
         "prompt", help="Natural language prompt describing the partimento to generate"
@@ -39,6 +55,7 @@ def register_generate_partimento(subparsers):
     parser.add_argument(
         "--output", "-o", help="Path to save the generated JSON (optional)"
     )
+    _add_engine_flag(parser)
 
 
 def register_realize_partimento(subparsers):
@@ -49,26 +66,29 @@ def register_realize_partimento(subparsers):
     parser.add_argument(
         "--output", "-o", help="Path to save the realized SATB JSON (optional)"
     )
+    _add_engine_flag(parser)
 
 
 def register_review_partimento(subparsers):
     parser = subparsers.add_parser(
-        "review-partimento", help="Use LLM to review a partimento structure"
+        "review-partimento", help="Review a partimento structure"
     )
     parser.add_argument("input", help="Path to the partimento JSON file")
     parser.add_argument(
         "--output", "-o", help="Path to save the generated JSON (optional)"
     )
+    _add_engine_flag(parser)
 
 
 def register_review_realization(subparsers):
     parser = subparsers.add_parser(
-        "review-realization", help="Use LLM to review a realized SATB partimento"
+        "review-realization", help="Review a realized SATB partimento"
     )
     parser.add_argument("input", help="Path to the realized SATB JSON file")
     parser.add_argument(
         "--output", "-o", help="Path to save the generated JSON (optional)"
     )
+    _add_engine_flag(parser)
 
 
 def register_revise_partimento(subparsers):
